@@ -1,0 +1,6 @@
+#ifndef DIJKSTRA_PARALLEL_INCLUDED
+#define DIJKSTRA_PARALLEL_INCLUDED
+
+void dijkstra_parallel_gpu(Graph* graph, unsigned source);
+
+#endif // DIJKSTRA_PARALLEL_INCLUDED
