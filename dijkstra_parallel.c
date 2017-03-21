@@ -4,20 +4,22 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <float.h>
-#include "cl_utils.h"
-#include "time_ms.h"
+#include <dijkstra_serial.h>
+#include <cl_utils.h>
+#include <time_ms.h>
 
-#define CL_DEVICE 0
+#define CL_DEVICE 1
 
 void dijkstra_parallel_gpu(Graph* graph, unsigned source)
 {
+    for(int i = 1; i<2;i++){
     cl_context context;
     cl_command_queue command_queue;
-    cl_device_id device = cluInitDevice(CL_DEVICE,&context,&command_queue);
+    cl_device_id device = cluInitDevice(i,&context,&command_queue);
 
     cl_int err;
 
-    printf("%s\n",cluGetDeviceDescription(device,CL_DEVICE));
+    printf("%s\n",cluGetDeviceDescription(device,i));
 
     // Create Memory Buffers for Graph Data
     cl_mem vertice_buffer = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(cl_uint) * (graph->V+1), NULL, &err);
@@ -94,9 +96,9 @@ void dijkstra_parallel_gpu(Graph* graph, unsigned source)
     }
     unsigned long total_time = time_ms() - start_time;
 
-    //printf("Time for source node %u parallel Dijkstra: %lu\n",source,total_time);
+    printf("Time for source node %u parallel Dijkstra: %lu\n",source,total_time);
 
-    float* cost_array = dijkstra_serial(graph,source);
+    /*float* cost_array = dijkstra_serial(graph,source);
     float* cost_parallel = (float*) malloc(sizeof(float) * graph->V);
 
     err = clEnqueueReadBuffer(command_queue,cost_buffer,CL_TRUE,0,sizeof(cl_float) * graph->V,cost_parallel,0,NULL,NULL);
@@ -106,18 +108,17 @@ void dijkstra_parallel_gpu(Graph* graph, unsigned source)
         if(cost_array[i] != cost_parallel[i])
         {
             printf("Wrong Results an Stelle %d: Serial says %f and parallel says %f\n",i,cost_array[i],cost_parallel[i] );
-            break;
         }
     }
 
-    /*for(int i = 0;i<graph->V;i++)
+    for(int i = 0;i<graph->V;i++)
     {
             printf("%.1f\t",cost_parallel[i]);
-    }*/
+    }
     //printf("\n");
 
     free(cost_array);
-    free(cost_parallel);
+    free(cost_parallel);*/
 
     // Clean up
     err = clFlush(command_queue);
@@ -136,69 +137,6 @@ void dijkstra_parallel_gpu(Graph* graph, unsigned source)
     err = clReleaseMemObject(finished_flag);
     err = clReleaseCommandQueue(command_queue);
     err = clReleaseContext(context);
+    }
 }
 
-// just to check if the parallel Algorithm works.
-float* dijkstra_serial(Graph* graph, unsigned source)
-{
-    graph->vertices = (unsigned*) realloc(graph->vertices,sizeof(unsigned) * (graph->V+1));
-    graph->vertices[graph->V] = graph->E;
-
-    bool* mask_array = (bool*)calloc(graph->V,sizeof(unsigned));
-    mask_array[source] = true;
-
-    float* cost_array = (float*)malloc(graph->V * sizeof(float));
-    bool finished = false;
-
-    for(int i = 0; i<graph->V;i++)
-    {
-        cost_array[i] = FLT_MAX;
-    }
-    cost_array[source] = 0.0f;
-
-    //unsigned* neighbors = &graph->edges[source];
-    unsigned num_neighbors;// = graph->vertices[source+1] - graph->vertices[source];
-    unsigned current = source;
-    unsigned long start_time = time_ms();
-    while(!finished)
-    {
-        finished = true;
-        float min = FLT_MAX;
-        unsigned m = 0;
-        num_neighbors = graph->vertices[current+1] - graph->vertices[current];
-        unsigned* neighbors = &graph->edges[graph->vertices[current]];
-
-        for(int i = 0; i<num_neighbors;i++)
-        {
-            unsigned neighbor = neighbors[i];
-            float weight = cost_array[current] + graph->weight[graph->vertices[current] + i];
-            // Update Cost for neighbors
-            if(mask_array[neighbor] == false && weight < cost_array[neighbor])
-            {
-                cost_array[neighbor] = weight;
-                finished = false;
-            }
-        }
-
-        for(int i = 0; i<graph->V;i++)
-        {
-             // Save Minimum path for next main loop iteration
-            if( mask_array[i] == false && min>cost_array[i])
-            {
-                min = cost_array[i];
-                m = i;
-                finished = false;
-            }
-        }
-
-        current = m;
-        mask_array[m] = true;
-    }
-
-    unsigned long total_time = time_ms() - start_time;
-    //printf("Time for source node %u serial Dijkstra: %lu\n",source,total_time);
-
-    free(mask_array);
-    return cost_array;
-
-}

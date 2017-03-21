@@ -89,7 +89,7 @@ Graph* getRandomGraph (int verticeCount){
     for(int i = 0;i<verticeCount;i++)
     {
         graph->vertices[i] = edgeCount;
-        edgeCount += rand()%(10);
+        edgeCount += rand()%(100);
     }
 
 
