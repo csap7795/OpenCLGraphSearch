@@ -20,7 +20,7 @@ typedef struct Graph Graph;
 
 Graph* getTreeGraphWeight(int level, int edges);
 Graph* getTreeGraph(int level, int edges);
-Graph* getRandomGraph (int verticeCount);
+Graph* getRandomGraph (int verticeCount, int edges_per_vertex);
 void freeGraph(Graph* graph);
 void printGraph(Graph* graph);
 

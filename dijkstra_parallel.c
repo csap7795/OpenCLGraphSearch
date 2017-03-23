@@ -10,16 +10,15 @@
 
 #define CL_DEVICE 1
 
-void dijkstra_parallel_gpu(Graph* graph, unsigned source)
+unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_num)
 {
-    for(int i = 1; i<2;i++){
     cl_context context;
     cl_command_queue command_queue;
-    cl_device_id device = cluInitDevice(i,&context,&command_queue);
+    cl_device_id device = cluInitDevice(device_num,&context,&command_queue);
 
     cl_int err;
 
-    printf("%s\n",cluGetDeviceDescription(device,i));
+    //printf("%s\n",cluGetDeviceDescription(device,i));
 
     // Create Memory Buffers for Graph Data
     cl_mem vertice_buffer = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(cl_uint) * (graph->V+1), NULL, &err);
@@ -96,7 +95,7 @@ void dijkstra_parallel_gpu(Graph* graph, unsigned source)
     }
     unsigned long total_time = time_ms() - start_time;
 
-    printf("Time for source node %u parallel Dijkstra: %lu\n",source,total_time);
+    //printf("Time for source node %u parallel Dijkstra: %lu\n",source,total_time);
 
     /*float* cost_array = dijkstra_serial(graph,source);
     float* cost_parallel = (float*) malloc(sizeof(float) * graph->V);
@@ -108,14 +107,9 @@ void dijkstra_parallel_gpu(Graph* graph, unsigned source)
         if(cost_array[i] != cost_parallel[i])
         {
             printf("Wrong Results an Stelle %d: Serial says %f and parallel says %f\n",i,cost_array[i],cost_parallel[i] );
+            break;
         }
     }
-
-    for(int i = 0;i<graph->V;i++)
-    {
-            printf("%.1f\t",cost_parallel[i]);
-    }
-    //printf("\n");
 
     free(cost_array);
     free(cost_parallel);*/
@@ -137,6 +131,7 @@ void dijkstra_parallel_gpu(Graph* graph, unsigned source)
     err = clReleaseMemObject(finished_flag);
     err = clReleaseCommandQueue(command_queue);
     err = clReleaseContext(context);
-    }
+
+    return total_time;
 }
 

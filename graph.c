@@ -75,7 +75,7 @@ Graph* getTreeGraph(int level, int edges)
     return graph;
 }
 
-Graph* getRandomGraph (int verticeCount){
+Graph* getRandomGraph (int verticeCount, int edges_per_vertex){
 
     srand(time(NULL));
 
@@ -89,7 +89,7 @@ Graph* getRandomGraph (int verticeCount){
     for(int i = 0;i<verticeCount;i++)
     {
         graph->vertices[i] = edgeCount;
-        edgeCount += rand()%(100);
+        edgeCount += (rand()%(edges_per_vertex)+1);
     }
 
 

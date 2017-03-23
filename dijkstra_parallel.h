@@ -3,8 +3,8 @@
 
 #include <graph.h>
 
-void dijkstra_parallel_gpu(Graph* graph, unsigned source);
+unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_num);
 
-float* dijkstra_serial(Graph* graph, unsigned source);
+//float* dijkstra_serial(Graph* graph, unsigned source);
 
 #endif // DIJKSTRA_PARALLEL_H_INCLUDED

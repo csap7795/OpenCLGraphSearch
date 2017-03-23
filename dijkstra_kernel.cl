@@ -1,7 +1,7 @@
-__kernel void initializeBuffers(__global bool *maskArray, __global float *costArray,__global float *updatingCostArray,__global float *semaphore, unsigned sourceVertex)
+__kernel void initializeBuffers(__global bool *maskArray, __global float *costArray,__global float *updatingCostArray,volatile __global int *semaphore, unsigned sourceVertex)
 {
 
-   int id = get_global_id(0);
+   size_t id = get_global_id(0);
 
    semaphore[id] = 0;
 
@@ -21,9 +21,9 @@ __kernel void initializeBuffers(__global bool *maskArray, __global float *costAr
 
 }
 
-__kernel void dijkstra1(__global unsigned *vertexArray, __global unsigned *edgeArray, __global float *weightArray, __global bool *maskArray, __global float *costArray, __global float *updatingCostArray,__global volatile int *semaphore)
+__kernel void dijkstra1(__global unsigned *vertexArray, __global unsigned *edgeArray, __global float *weightArray, __global bool *maskArray, __global float *costArray, __global float *updatingCostArray,volatile __global int *semaphore)
 {
-    unsigned id = get_global_id(0);
+    size_t id = get_global_id(0);
 
     if(maskArray[id] != 0)
     {
@@ -36,32 +36,31 @@ __kernel void dijkstra1(__global unsigned *vertexArray, __global unsigned *edgeA
             unsigned nid = edgeArray[edge];
 
             // use atomics to avoid raceCondition
+            //while(atomic_cmpxchg(semaphore+nid,0,1));
+            bool not_enter = atomic_cmpxchg(semaphore+nid,0,1);
 
-            while(atomic_cmpxchg(semaphore+nid,0,1));
-
-            float value = updatingCostArray[nid];
-
-            //compute things to spend time before comparison
-
-	        /*for(int i = 0; i< 10000;i++)
+            if(!not_enter)
             {
-                i%2 == 0 ? maskArray[id]++ : maskArray[id]--;
-            }*/
+                float value = updatingCostArray[nid];
+                if(value > costArray[id] + weightArray[edge])
+                {
+                    updatingCostArray[nid] = costArray[id] + weightArray[edge];
+                    //if you want to save the path, save id in an extra predecessor array on index nid
+                }
 
-            if(value > costArray[id] + weightArray[edge])
-            {
-                updatingCostArray[nid] = costArray[id] + weightArray[edge];
-                //if you want to save the path, save id in an extra predecessor array on index nid
+                atomic_cmpxchg(semaphore+nid,1,0);
             }
 
-            atomic_cmpxchg(semaphore+nid,1,0);
+            else
+               edge--;
+
         }
     }
 }
 
 __kernel void dijkstra2(__global bool *maskArray, __global float *costArray, __global float *updatingCostArray,__global bool *finished)
 {
-    int id = get_global_id(0);
+    size_t id = get_global_id(0);
 
     if(costArray[id] > updatingCostArray[id])
     {
@@ -70,7 +69,7 @@ __kernel void dijkstra2(__global bool *maskArray, __global float *costArray, __g
         *finished = false;
     }
     // Really need this?? Guess not.
-    //updatingCostArray[id] = costArray[id];
+    updatingCostArray[id] = costArray[id];
 }
 
 

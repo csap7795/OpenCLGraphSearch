@@ -1,7 +1,14 @@
 #include "cl_utils.h"
 // ------------------------------------------------------------------------------------------------ implementations
+unsigned round_up_globalSize(unsigned globalSize, unsigned localSize)
+{
+    if(globalSize%localSize == 0)
+        return globalSize;
 
- cl_device_id cluInitDevice(size_t num, cl_context *out_context, cl_command_queue *out_queue) {
+    else return localSize*((globalSize/localSize)+1);
+}
+
+cl_device_id cluInitDevice(size_t num, cl_context *out_context, cl_command_queue *out_queue) {
 	// get platform ids
 	cl_uint ret_num_platforms;
 	CLU_ERRCHECK(clGetPlatformIDs(0, NULL, &ret_num_platforms), "Failed to query number of ocl platforms");

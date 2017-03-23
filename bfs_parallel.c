@@ -12,14 +12,6 @@
 #define CHUNK_SIZE 512
 #define W_SZ 4
 
-unsigned round_up_globalSize(unsigned V)
-{
-    if(V%CHUNK_SIZE == 0)
-        return V;
-
-    else return CHUNK_SIZE*((V/CHUNK_SIZE)+1);
-}
-
 void bfs_parallel_gpu_workgroup(Graph* graph, unsigned source, size_t group_size)
 {
     cl_context context;
@@ -32,7 +24,7 @@ void bfs_parallel_gpu_workgroup(Graph* graph, unsigned source, size_t group_size
     printf("%s\n",cluGetDeviceDescription(device,CL_DEVICE));
 
     // Round up globalSize to get a multiple of CHUNK_SIZE
-    unsigned total = round_up_globalSize(graph->V);
+    unsigned total = round_up_globalSize(graph->V,CHUNK_SIZE);
     cl_uint addbuffer[CHUNK_SIZE] ={ [0 ... CHUNK_SIZE-1] = graph->E};
 
     cl_mem vertice_buffer = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(cl_uint) * (total+1), NULL, &err);

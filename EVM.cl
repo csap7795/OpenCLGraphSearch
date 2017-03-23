@@ -1,4 +1,71 @@
+void memcpy_SIMD (int W_OFF, int cnt, __local unsigned* dest, __global unsigned* src)
+{
+    for(int IDX = W_OFF; IDX<cnt; IDX+=GROUP_NUM)
+    {
+        dest[IDX] = src[IDX];
+    }
 
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+}
+
+__kernel void calculateWriteIndices(__global unsigned *edges, __global unsigned *oldToNew, __global unsigned *offset, __global volatile unsigned *helper, __global unsigned *messageWriteIndex)
+{
+    size_t id = get_global_id(0);
+    unsigned old_source = edges[id];
+    unsigned new_source = oldToNew[old_source];
+    unsigned group_id = new_source/GROUP_NUM;
+    unsigned inner_id = new_source%GROUP_NUM;
+    messageWriteIndex[id] = offset[group_id] + inner_id + (atomic_inc(&helper[old_source])*GROUP_NUM);
+
+}
+
+__kernel void sort_source_vertex(__global unsigned *sourceVertices, __global unsigned *oldToNew, __global unsigned* sorted)
+{
+    size_t id = get_global_id(0);
+    unsigned source = sourceVertices[id];
+    sorted[id] = oldToNew[source];
+}
+
+__kernel void preprocess(__global unsigned *vertices,__global unsigned *edges,__global unsigned *sourceVertices, __global volatile unsigned *numEdges)
+{
+    size_t id = get_global_id(0);
+    unsigned offset = vertices[id];
+    unsigned num_neighbors = vertices[id+1] - offset;
+
+    //offset + i belongs to the unique edge id
+    for(int i = 0; i<num_neighbors;i++)
+    {
+        unsigned dest = edges[offset+i];
+        atomic_inc(&numEdges[dest]);
+        sourceVertices[offset+i] = id;
+    }
+
+}
+
+__kernel void maxima(__global unsigned *numEdges, global unsigned *maxima)
+{
+    size_t id = get_global_id(0);
+    size_t local_id = get_local_id(0);
+    size_t group_id = id/GROUP_NUM;
+
+    __local unsigned sizes[GROUP_NUM];
+
+    // copy my work to local
+    memcpy_SIMD(local_id,GROUP_NUM,sizes,&numEdges[group_id*GROUP_NUM]);
+
+    if(local_id == 0)
+    {
+        unsigned max = 0;
+
+        for(int i = 0; i<GROUP_NUM;i++)
+            if(sizes[i] > max)
+                max = sizes[i];
+
+        maxima[group_id] = max * GROUP_NUM;
+    }
+
+}
 //Theoretically you could use another bool array to check wheter MessageBuffer was changed for current Vertex
 float combine(__global float *messageBuffer, unsigned numMessages, unsigned index)
 {
