@@ -18,6 +18,7 @@ struct Graph
 typedef struct Graph Graph;
 
 
+Graph* getEmptyGraph(unsigned vertices, unsigned edges);
 Graph* getTreeGraphWeight(int level, int edges);
 Graph* getTreeGraph(int level, int edges);
 Graph* getRandomGraph (int verticeCount, int edges_per_vertex);

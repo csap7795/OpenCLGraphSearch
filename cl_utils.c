@@ -8,6 +8,23 @@ unsigned round_up_globalSize(unsigned globalSize, unsigned localSize)
     else return localSize*((globalSize/localSize)+1);
 }
 
+unsigned cluCountDevices()
+{
+    unsigned count = 0;
+    cl_uint ret_num_platforms;
+	CLU_ERRCHECK(clGetPlatformIDs(0, NULL, &ret_num_platforms), "Failed to query number of ocl platforms");
+	cl_platform_id *ret_platforms = (cl_platform_id*)alloca(sizeof(cl_platform_id)*ret_num_platforms);
+	CLU_ERRCHECK(clGetPlatformIDs(ret_num_platforms, ret_platforms, NULL), "Failed to retrieve ocl platforms");
+
+	// get device id of desired device
+	for(cl_uint i=0; i<ret_num_platforms; ++i) {
+		cl_uint ret_num_devices;
+		CLU_ERRCHECK(clGetDeviceIDs(ret_platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &ret_num_devices), "Failed to query number of ocl devices");
+		count += ret_num_devices;
+	}
+	return count;
+}
+
 cl_device_id cluInitDevice(size_t num, cl_context *out_context, cl_command_queue *out_queue) {
 	// get platform ids
 	cl_uint ret_num_platforms;
@@ -81,7 +98,7 @@ cl_device_id cluInitDevice(size_t num, cl_context *out_context, cl_command_queue
 }
 
 
- void cluSetKernelArguments(const cl_kernel kernel, const cl_uint num_args, ...) {
+void cluSetKernelArguments(const cl_kernel kernel, const cl_uint num_args, ...) {
 	//loop through the arguments and call clSetKernelArg for each
 	size_t arg_size;
 	const void *arg_val;

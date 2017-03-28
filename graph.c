@@ -4,6 +4,17 @@
 #include <time.h>
 #include <math.h>
 
+Graph* getEmptyGraph(unsigned vertices, unsigned edges)
+{
+    Graph* graph = (Graph*)malloc(sizeof(Graph));
+    graph->E = edges;
+    graph->V = vertices;
+    graph->edges = (unsigned*)malloc(graph->E * sizeof(unsigned));
+    graph->vertices = (unsigned*)malloc(graph->V * sizeof(unsigned));
+    graph->weight = (float*) malloc(graph->E * sizeof(float));
+    return graph;
+}
+
 Graph* getTreeGraphWeight(int level, int edges)
 {
     Graph* graph = (Graph*)malloc(sizeof(Graph));

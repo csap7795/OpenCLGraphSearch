@@ -12,6 +12,8 @@
 
 unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_num)
 {
+
+    unsigned long start_time = time_ms();
     cl_context context;
     cl_command_queue command_queue;
     cl_device_id device = cluInitDevice(device_num,&context,&command_queue);
@@ -79,7 +81,6 @@ unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_n
     // start looping both main kernels
     bool finished;
 
-    unsigned long start_time = time_ms();
     while(true)
     {
         CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, dijkstra1_kernel, 1, NULL, &globalSize, NULL, 0, NULL, NULL), "Failed to enqueue Dijkstra1 kernel");
@@ -93,7 +94,6 @@ unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_n
         err = clEnqueueWriteBuffer(command_queue, finished_flag, CL_TRUE, 0, sizeof(cl_bool), &finished , 0, NULL, NULL);
 
     }
-    unsigned long total_time = time_ms() - start_time;
 
     //printf("Time for source node %u parallel Dijkstra: %lu\n",source,total_time);
 
@@ -132,6 +132,7 @@ unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_n
     err = clReleaseCommandQueue(command_queue);
     err = clReleaseContext(context);
 
+    unsigned long total_time = time_ms() - start_time;
     return total_time;
 }
 

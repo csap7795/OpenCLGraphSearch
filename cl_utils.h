@@ -28,6 +28,9 @@ if(__err != CL_SUCCESS) { \
 /* used for making globalSize a multiple of localSize */
 unsigned round_up_globalSize(unsigned globalSize, unsigned localSize);
 
+/*Counts Devices across all platforms*/
+unsigned cluCountDevices();
+
 // initialize opencl device "num" -- devices are numbered sequentially across all platforms
 // if supplied, "command_queue" and "context" are filled with an initialized context and command queue on the device
  cl_device_id cluInitDevice(size_t num, cl_context *out_context, cl_command_queue *out_queue);

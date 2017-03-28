@@ -1,30 +1,132 @@
-// The functions contained in this file are pretty dummy
-// and are included only as a placeholder. Nevertheless,
-// they *will* get included in the static library if you
-// don't remove them :)
-//
-// Obviously, you 'll have to write yourself the super-duper
-// functions to include in the resulting library...
-// Also, it's not necessary to write every function in this file.
-// Feel free to add more files in this project. They will be
-// included in the resulting library.
+#include <stdio.h>
+#include <stdlib.h>
+#include <graph.h>
+#include <assert.h>
+#include <dijkstra_parallel.h>
+#include <sssp.h>
+#include <time.h>
+#include <cl_utils.h>
 
-// A function adding two integers and returning the result
-int SampleAddInt(int i1, int i2)
+#define TEST_ITERATIONS 5
+
+float test_sssp(Graph* graph,unsigned device_id)
 {
-    return i1 + i2;
+    srand(time(NULL));
+
+    unsigned long average_time = 0;
+    for(int i = 0; i<TEST_ITERATIONS;i++)
+    {
+        unsigned source = rand() % graph->V;
+        average_time += sssp(graph,source,device_id);
+    }
+    float divisor = TEST_ITERATIONS;
+    return average_time/divisor;
 }
 
-// A function doing nothing ;)
-void SampleFunction1()
+float test_dijkstra(Graph* graph,unsigned device_id)
 {
-    // insert code here
+    srand(time(NULL));
+
+    unsigned long average_time = 0;
+    for(int i = 0; i<TEST_ITERATIONS;i++)
+    {
+        unsigned source = rand() % graph->V;
+        average_time += dijkstra_parallel(graph,source,device_id);
+    }
+    float divisor = TEST_ITERATIONS;
+    return average_time/divisor;
 }
 
-// A function always returning zero
-int SampleFunction2()
+
+int main()
 {
-    // insert code here
+    unsigned device_count = cluCountDevices();
+
+    unsigned edges = 10;
+
+    for(int k = 100000;k<500000;k+=100000)
+    {
+        Graph* graph = getRandomGraph(k,edges);
+
+        for(unsigned i = 0; i<device_count; i++)
+        {
+            printf("Optimized\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_sssp(graph,i) );
+
+            printf("Baseline\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_dijkstra(graph,i) );
+        }
+    }
+
+    printf("\n\n");
+
+    for(int k = 1000000;k<5000000;k+=1000000)
+    {
+        Graph* graph = getRandomGraph(k,edges);
+
+        for(unsigned i = 0; i<device_count; i++)
+        {
+            printf("Optimized\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_sssp(graph,i) );
+
+            printf("Baseline\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_dijkstra(graph,i) );
+        }
+    }
+
+    edges *= 10;
+    printf("\n\n");
+
+    for(int k = 10000;k<50000;k+=10000)
+    {
+        Graph* graph = getRandomGraph(k,edges);
+
+        for(unsigned i = 0; i<device_count; i++)
+        {
+            printf("Optimized\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_sssp(graph,i) );
+
+            printf("Baseline\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_dijkstra(graph,i) );
+        }
+    }
+    printf("\n\n");
+
+    for(int k = 100000;k<500000;k+=100000)
+    {
+        Graph* graph = getRandomGraph(k,edges);
+
+        for(unsigned i = 0; i<device_count; i++)
+        {
+            printf("Optimized\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_sssp(graph,i) );
+
+            printf("Baseline\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_dijkstra(graph,i) );
+        }
+    }
+
+    printf("\n\n");
+
+    edges*=10;
+
+    for(int k = 1000;k<5000;k+=1000)
+    {
+        Graph* graph = getRandomGraph(k,edges);
+
+        for(unsigned i = 0; i<device_count; i++)
+        {
+            printf("Optimized\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_sssp(graph,i) );
+
+            printf("Baseline\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_dijkstra(graph,i) );
+        }
+    }
+
+     printf("\n\n");
+
+    for(int k = 10000;k<50000;k+=10000)
+    {
+        Graph* graph = getRandomGraph(k,edges);
+
+        for(unsigned i = 0; i<device_count; i++)
+        {
+            printf("Optimized\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_sssp(graph,i) );
+
+            printf("Baseline\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_dijkstra(graph,i) );
+        }
+    }
 
     return 0;
 }
