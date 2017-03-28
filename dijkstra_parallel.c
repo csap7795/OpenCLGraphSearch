@@ -7,6 +7,8 @@
 #include <dijkstra_serial.h>
 #include <cl_utils.h>
 #include <time_ms.h>
+#include <unistd.h>
+#include <libgen.h>
 
 #define CL_DEVICE 1
 
@@ -56,7 +58,12 @@ unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_n
     CLU_ERRCHECK(err,"Failed copying graph data to buffers");
 
     //Build Program and create Kernels
-    const char* kernel_file = "/home/chris/Dokumente/OpenCL/CodeBlocks Projekte/GraphSearchLibrary/dijkstra_kernel.cl";
+    char* filename = "/dijkstra_kernel.cl";
+    char cfp[1024];
+    char kernel_file[1024];
+    sprintf(cfp, "%s",__FILE__);
+    sprintf(kernel_file,"%s%s",dirname(cfp),filename);
+    filename = kernel_file;
     cl_program program = cluBuildProgramFromFile(context,device,kernel_file,NULL);
 
     cl_kernel init_kernel = clCreateKernel(program,"initializeBuffers",&err);

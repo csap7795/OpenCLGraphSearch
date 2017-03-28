@@ -7,6 +7,8 @@
 #include <time_ms.h>
 #include <dijkstra_serial.h>
 #include <limits.h>
+#include <unistd.h>
+#include <libgen.h>
 
 #define CL_DEVICE 1
 #define GROUP_NUM 32
@@ -24,7 +26,13 @@ static void build_kernel(size_t device_num, int group_num)
     //printf("%s\n\n",cluGetDeviceDescription(device,device_num));
     char tmp[1024];
     sprintf(tmp, "-DGROUP_NUM=%d",group_num);
-    const char* kernel_file = "/home/chris/Dokumente/OpenCL/CodeBlocks Projekte/GraphSearchLibrary/EVM.cl";
+    char* filename = "/EVM.cl";
+    char cfp[1024];
+    char kernel_file[1024];
+    sprintf(cfp, "%s",__FILE__);
+    sprintf(kernel_file,"%s%s",dirname(cfp),filename);
+    filename = kernel_file;
+
     program = cluBuildProgramFromFile(context,device,kernel_file,tmp);
 }
 

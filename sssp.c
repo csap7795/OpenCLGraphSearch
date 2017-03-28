@@ -6,6 +6,8 @@
 #include <edge_vertice_message.h>
 #include <float.h>
 #include <dijkstra_serial.h>
+#include <unistd.h>
+#include <libgen.h>
 
 #define GROUP_NUM 32
 
@@ -22,9 +24,16 @@ static void build_kernel(size_t device_num)
     clGetDeviceInfo(device,CL_DEVICE_TYPE,sizeof(cl_device_type),&device_type,NULL);
     int group_num;
     (device_type == CL_DEVICE_TYPE_GPU) ? (group_num = GROUP_NUM) : (group_num = 1);
+
+    char* filename = "/sssp.cl";
     char tmp[1024];
     sprintf(tmp, "-DGROUP_NUM=%d",group_num);
-    const char* kernel_file = "/home/chris/Dokumente/OpenCL/CodeBlocks Projekte/GraphSearchLibrary/sssp.cl";
+    char cfp[1024];
+    char kernel_file[1024];
+    sprintf(cfp, "%s",__FILE__);
+    sprintf(kernel_file,"%s%s",dirname(cfp),filename);
+    filename = kernel_file;
+
     program = cluBuildProgramFromFile(context,device,kernel_file,tmp);
 }
 
