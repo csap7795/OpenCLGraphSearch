@@ -5,7 +5,7 @@
 #include "time_ms.h"
 #include <limits.h>
 
-void bfs_serial(Graph* graph,unsigned source)
+unsigned* bfs_serial(Graph* graph,unsigned source)
 {
     unsigned* levels = (unsigned*)calloc(graph->V,sizeof(unsigned));
     for(int i = 0; i<graph->V;i++)
@@ -23,8 +23,6 @@ void bfs_serial(Graph* graph,unsigned source)
     bool finished = false;
     unsigned current_level = 0;
 
-
-    unsigned long start_time = time_ms();
     for(;!finished;current_level++)
     {
         finished = true;
@@ -47,10 +45,9 @@ void bfs_serial(Graph* graph,unsigned source)
         }
     }
 
-    printf("Time for source node %u and serial execution : %lu \t with diameter : %u\n",source,time_ms()-start_time,current_level-1);
-    free(levels);
     free(vertices);
 
+    return levels;
 
 }
 

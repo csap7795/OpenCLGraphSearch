@@ -3,6 +3,6 @@
 
 #include "graph.h"
 
-void bfs_serial(Graph* graph, unsigned source);
+unsigned* bfs_serial(Graph* graph,unsigned source);
 
 #endif // BFS_SERIAL_H_INCLUDED

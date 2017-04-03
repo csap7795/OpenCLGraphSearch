@@ -1,27 +1,58 @@
-#include "bfs_parallel.h"
-#include <stdio.h>
-#include "cl_utils.h"
+#include <bfs_parallel.h>
+
 #include <CL/cl.h>
-#include <stdbool.h>
+#include <cl_utils.h>
 #include <limits.h>
-#include "time_ms.h"
+#include <time_ms.h>
+#include <bfs_serial.h>
+
+#include <stdbool.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <libgen.h>
+
 
 #define KERNEL_FILENAME "/home/chris/Dokumente/OpenCL/CodeBlocks Projekte/GraphSearchLibrary/bfs_kernel.cl"
 #define CL_DEVICE 1
 
-#define CHUNK_SIZE 512
-#define W_SZ 4
+#define CHUNK_SIZE 256
+#define W_SZ 16
 
-void bfs_parallel_gpu_workgroup(Graph* graph, unsigned source, size_t group_size)
+static cl_program program;
+static cl_context context;
+static cl_command_queue command_queue;
+static cl_device_id device;
+
+static void build_program(size_t device_num)
 {
-    cl_context context;
-    cl_command_queue command_queue;
-    cl_device_id device = cluInitDevice(CL_DEVICE,&context,&command_queue);
+    device = cluInitDevice(device_num,&context,&command_queue);
+    //printf("%s\n\n",cluGetDeviceDescription(device,device_num));
+
+    char tmp[1024];
+    sprintf(tmp, "-DW_SZ=%i -DCHUNK_SIZE=%i",W_SZ, CHUNK_SIZE);
+
+    char* filename = "/bfs_kernel.cl";
+    char cfp[1024];
+
+    /* Create path to the kernel file*/
+    char kernel_file[1024];
+    sprintf(cfp, "%s",__FILE__);
+    sprintf(kernel_file,"%s%s",dirname(cfp),filename);
+
+    program = cluBuildProgramFromFile(context,device,kernel_file,tmp);
+}
+
+/* Outperforms baseline approach 3 times with groupsize 64 vertices 100000 and edges per vertex 1000*/
+void bfs_parallel_workgroup(Graph* graph, unsigned source, size_t group_size, unsigned device_num)
+{
+    /* If group_size smaller than W_SZ kernel will fail */
+    if(group_size < W_SZ)
+        group_size = W_SZ;
+
+    build_program(device_num);
 
     cl_int err;
     cl_uint current_level = 0;
-
-    printf("%s\n",cluGetDeviceDescription(device,CL_DEVICE));
 
     // Round up globalSize to get a multiple of CHUNK_SIZE
     unsigned total = round_up_globalSize(graph->V,CHUNK_SIZE);
@@ -45,11 +76,7 @@ void bfs_parallel_gpu_workgroup(Graph* graph, unsigned source, size_t group_size
     err = clEnqueueWriteBuffer(command_queue, edge_buffer, CL_TRUE, 0, graph->E * sizeof(cl_uint), graph->edges , 0, NULL, NULL);
     CLU_ERRCHECK(err,"Failed copying graph data to buffers");
 
-    // Build Program and create Kernels
-    char tmp[1024];
-    sprintf(tmp, "-DW_SZ=%u -DCHUNK_SIZE=%i",(unsigned)group_size, CHUNK_SIZE);
-    cl_program program = cluBuildProgramFromFile(context,device,KERNEL_FILENAME,tmp);
-
+    /*Create Kernels*/
     cl_kernel init_kernel = clCreateKernel(program,"initialize_bfs_kernel",&err);
     CLU_ERRCHECK(err,"Failed to create initializing bfs kernel from program");
 
@@ -68,9 +95,7 @@ void bfs_parallel_gpu_workgroup(Graph* graph, unsigned source, size_t group_size
     globalSize = total/CHUNK_SIZE * group_size;
     size_t localSize = group_size;
     bool finished;
-    cl_uint* levels = (cl_uint*)malloc(sizeof(cl_uint)*graph->V);
 
-    unsigned long start_time = time_ms();
     while(true)
     {
         CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, bfs_workgroup_kernel, 1, NULL, &globalSize, &localSize, 0, NULL, NULL), "Failed to enqueue 2D kernel");
@@ -85,17 +110,23 @@ void bfs_parallel_gpu_workgroup(Graph* graph, unsigned source, size_t group_size
         clSetKernelArg(bfs_workgroup_kernel,4,sizeof(cl_uint),&current_level);
 
     }
-    unsigned long total_time = time_ms()-start_time;
+
+    /* Test if correct*/
+   /*
+    cl_uint* levels = (cl_uint*)malloc(sizeof(cl_uint)*graph->V);
     err = clEnqueueReadBuffer(command_queue,level_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,levels,0,NULL,NULL);
-    unsigned max = 0;
+    cl_uint* test = bfs_serial(graph,source);
+
     for(int i = 0; i<graph->V;i++)
     {
-        if(levels[i]>max && levels[i] != INT_MAX)
-            max = levels[i];
+        if(levels[i] != test[i]){
+            printf("False\n");
+            break;
+        }
     }
-    printf("GroupSize : %u\n",(unsigned) group_size);
-    printf("Time for source node %u workgroupapproach with Diameter %u: %lu\n\n",source,max,total_time);
-    free(levels);
+
+    free(test);
+    free(levels);*/
 
     //finalize
     err = clFinish(command_queue);
@@ -115,16 +146,12 @@ void bfs_parallel_gpu_workgroup(Graph* graph, unsigned source, size_t group_size
 
 }
 
-void bfs_parallel_gpu_baseline(Graph* graph, unsigned source)
+void bfs_parallel_baseline(Graph* graph, unsigned source, unsigned device_num)
 {
-    cl_context context;
-    cl_command_queue command_queue;
-    cl_device_id device = cluInitDevice(CL_DEVICE,&context,&command_queue);
+    build_program(device_num);
 
     cl_int err;
     cl_uint current_level = 0;
-
-    printf("%s\n",cluGetDeviceDescription(device,CL_DEVICE));
 
     // Create Memory Buffers for Graph Data
     cl_mem vertice_buffer = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(cl_uint) * (graph->V+1), NULL, &err);
@@ -146,16 +173,11 @@ void bfs_parallel_gpu_baseline(Graph* graph, unsigned source)
     err = clEnqueueWriteBuffer(command_queue, edge_buffer, CL_TRUE, 0, graph->E * sizeof(cl_uint), graph->edges , 0, NULL, NULL);
     CLU_ERRCHECK(err,"Failed copying graph data to buffers");
 
-    // Build Program and create Kernels
-    char tmp[1024];
-    sprintf(tmp, "-DW_SZ=%i -DCHUNK_SIZE=%i",W_SZ, CHUNK_SIZE);
-    const char* kernel_file = "/home/chris/Dokumente/OpenCL/CodeBlocks Projekte/GraphSearchLibrary/bfs_kernel.cl";
-    cl_program program = cluBuildProgramFromFile(context,device,kernel_file,tmp);
-
+    // Create Kernels
     cl_kernel init_kernel = clCreateKernel(program,"initialize_bfs_kernel",&err);
     CLU_ERRCHECK(err,"Failed to create initializing bfs kernel from program");
 
-    cl_kernel bfs_kernel = clCreateKernel(program,"bfs_kernel",&err);
+    cl_kernel bfs_kernel = clCreateKernel(program,"baseline_kernel",&err);
     CLU_ERRCHECK(err,"Failed to create bfs baseline kernel from program");
 
     // Set Kernel Arguments
@@ -170,7 +192,6 @@ void bfs_parallel_gpu_baseline(Graph* graph, unsigned source)
     bool finished;
     cl_uint* levels = (cl_uint*)malloc(sizeof(cl_uint)*graph->V);
 
-    unsigned long start_time = time_ms();
     while(true)
     {
         CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, bfs_kernel, 1, NULL, &globalSize, NULL, 0, NULL, NULL), "Failed to enqueue 2D kernel");
@@ -185,16 +206,20 @@ void bfs_parallel_gpu_baseline(Graph* graph, unsigned source)
         clSetKernelArg(bfs_kernel,4,sizeof(cl_uint),&current_level);
 
     }
-    unsigned long total_time = time_ms() - start_time;
+
+    /* Test if correct*/
     err = clEnqueueReadBuffer(command_queue,level_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,levels,0,NULL,NULL);
-    int max = 0;
+    cl_uint* test = bfs_serial(graph,source);
+
     for(int i = 0; i<graph->V;i++)
     {
-        if(levels[i]>max && levels[i] != INT_MAX)
-            max = levels[i];
+        if(levels[i] != test[i]){
+            printf("False\n");
+            break;
+        }
     }
 
-    printf("Time for source node %u baseline approach and Diameter %d: %lu\n",source,max,total_time);
+    free(test);
     free(levels);
 
     //finalize

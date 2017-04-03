@@ -10,19 +10,35 @@
 #include <unistd.h>
 #include <libgen.h>
 
-#define CL_DEVICE 1
+static cl_program program;
+static cl_context context;
+static cl_command_queue command_queue;
+static cl_device_id device;
+
+static void build_program(size_t device_num)
+{
+    device = cluInitDevice(device_num,&context,&command_queue);
+    //printf("%s\n\n",cluGetDeviceDescription(device,device_num));
+
+    char* filename = "/dijkstra_kernel.cl";
+    char cfp[1024];
+
+    /* Create path to the kernel file*/
+    char kernel_file[1024];
+    sprintf(cfp, "%s",__FILE__);
+    sprintf(kernel_file,"%s%s",dirname(cfp),filename);
+
+    program = cluBuildProgramFromFile(context,device,kernel_file,NULL);
+}
 
 unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_num)
 {
+    /*First, build the program*/
+    build_program(device_num);
 
     unsigned long start_time = time_ms();
-    cl_context context;
-    cl_command_queue command_queue;
-    cl_device_id device = cluInitDevice(device_num,&context,&command_queue);
 
     cl_int err;
-
-    //printf("%s\n",cluGetDeviceDescription(device,i));
 
     // Create Memory Buffers for Graph Data
     cl_mem vertice_buffer = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(cl_uint) * (graph->V+1), NULL, &err);
@@ -57,15 +73,6 @@ unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_n
     err = clEnqueueWriteBuffer(command_queue, weight_buffer, CL_TRUE,0, graph->E * sizeof(cl_uint), graph->weight,0, NULL, NULL);
     CLU_ERRCHECK(err,"Failed copying graph data to buffers");
 
-    //Build Program and create Kernels
-    char* filename = "/dijkstra_kernel.cl";
-    char cfp[1024];
-    char kernel_file[1024];
-    sprintf(cfp, "%s",__FILE__);
-    sprintf(kernel_file,"%s%s",dirname(cfp),filename);
-    filename = kernel_file;
-    cl_program program = cluBuildProgramFromFile(context,device,kernel_file,NULL);
-
     cl_kernel init_kernel = clCreateKernel(program,"initializeBuffers",&err);
     CLU_ERRCHECK(err,"Failed to create initializing_buffers kernel from program");
 
@@ -79,7 +86,6 @@ unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_n
     cluSetKernelArguments(init_kernel,5,sizeof(cl_mem),&mask_buffer,sizeof(cl_mem),&cost_buffer,sizeof(cl_mem),&update_cost_buffer,sizeof(cl_mem),&semaphore_buffer,sizeof(cl_uint),&source);
     cluSetKernelArguments(dijkstra1_kernel,7,sizeof(cl_mem),(void*)&vertice_buffer,sizeof(cl_mem),(void*)&edge_buffer,sizeof(cl_mem),(void*)&weight_buffer,sizeof(cl_mem),(void*)&mask_buffer,sizeof(cl_mem),(void*)&cost_buffer,sizeof(cl_mem),(void*)&update_cost_buffer,sizeof(cl_mem),(void*)&semaphore_buffer);
     cluSetKernelArguments(dijkstra2_kernel,4,sizeof(cl_mem),(void*)&mask_buffer,sizeof(cl_mem),(void*)&cost_buffer,sizeof(cl_mem),(void*)&update_cost_buffer,sizeof(cl_mem),(void*)&finished_flag);
-
 
     // Execute the OpenCL kernel for initializing Buffers
     size_t globalSize = graph->V;

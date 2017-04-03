@@ -93,6 +93,8 @@ cl_device_id cluInitDevice(size_t num, cl_context *out_context, cl_command_queue
 		exit(-1);
 	}
 
+	/*clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, MAX_KERNEL_SOURCE, source_str, NULL);
+    fprintf(stdout, "Build log:\n%s\n", source_str);*/
 	free(source_str);
 	return program;
 }

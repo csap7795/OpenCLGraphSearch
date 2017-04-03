@@ -3,12 +3,12 @@
 
 struct groupmem_t {
 
-    int levels[CHUNK_SIZE];
-    int nodes [CHUNK_SIZE+1];
+    unsigned levels[CHUNK_SIZE];
+    unsigned nodes [CHUNK_SIZE+1];
 
 };
 
-void memcpy_SIMD (int W_OFF, int cnt, __local int* dest, __global int* src)
+void memcpy_SIMD (unsigned W_OFF, int cnt, __local unsigned* dest, __global unsigned* src)
 {
     for(int IDX = W_OFF; IDX<cnt; IDX+=W_SZ)
     {
@@ -19,7 +19,7 @@ void memcpy_SIMD (int W_OFF, int cnt, __local int* dest, __global int* src)
 
 }
 
-void expand_bfs_SIMD(int W_OFF,int cnt,__global unsigned* edges, __global unsigned* levels, unsigned curr, __global bool* finished)
+void expand_bfs_SIMD(unsigned W_OFF,int cnt,__global unsigned* edges, __global unsigned* levels, unsigned curr, __global bool* finished)
 {
     for(int IDX = W_OFF;IDX<cnt;IDX+=W_SZ)
     {
@@ -72,27 +72,8 @@ __kernel void initialize_bfs_kernel(__global int *levels,__global bool *finished
         levels[id] = INT_MAX;
 }
 
-__kernel void baseline_kernel(__global unsigned *vertices, __global unsigned *edges, __global unsigned *levels, __global unsigned *curr, __global bool* finished)
-{
-	size_t v = get_global_id(0);
 
-	if(levels[v] == *curr)
-	{
-        unsigned num_nbrs = vertices[v+1] - vertices[v];
-
-        for(int i = 0; i<num_nbrs;i++)
-        {
-            unsigned w = edges[vertices[v]+i];
-            if(levels[w] == INT_MAX)
-            {
-                *finished = false;
-                levels[w] = (*curr)+1;
-            }
-        }
-    }
-}
-
-__kernel void bfs_kernel(__global unsigned *vertices, __global unsigned *edges, __global unsigned *levels,__global bool* finished,  unsigned curr)
+__kernel void baseline_kernel(__global unsigned *vertices, __global unsigned *edges, __global unsigned *levels,__global bool* finished,  unsigned curr)
 {
 	size_t v = get_global_id(0);
 

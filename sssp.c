@@ -33,6 +33,7 @@ static void build_kernel(size_t device_num)
     sprintf(cfp, "%s",__FILE__);
     sprintf(kernel_file,"%s%s",dirname(cfp),filename);
     filename = kernel_file;
+    printf("%s\n",kernel_file);
 
     program = cluBuildProgramFromFile(context,device,kernel_file,tmp);
 }

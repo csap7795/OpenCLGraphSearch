@@ -3,6 +3,33 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <float.h>
+
+cl_float** getAdjMatrix(unsigned vertices,unsigned edges)
+{
+    cl_float** mat = (cl_float**)malloc(sizeof(cl_float*) * vertices);
+    for(int i = 0; i<vertices;i++)
+        mat[i] = (cl_float*)malloc(sizeof(cl_float)*vertices);
+
+    for(int i = 0; i<vertices; i++)
+        for(int j = 0; j<vertices; j++)
+            if(i == j)
+                mat[i][j] = 0.0f;
+            else
+                mat[i][j] = CL_FLT_MAX;
+
+    srand(time(NULL));
+
+    for(int k = 1; k<edges; k++)
+    {
+        int j;
+        int i = rand()%vertices;
+        while(( j = rand()%vertices) == i);
+        mat[i][j] = (float)((double)rand()/(double)RAND_MAX);
+
+    }
+    return mat;
+}
 
 Graph* getEmptyGraph(unsigned vertices, unsigned edges)
 {

@@ -1,6 +1,8 @@
 #ifndef GRAPH_H_INCLUDED
 #define GRAPH_H_INCLUDED
 
+#include <CL/cl.h>
+
 // The Datastructure for saving Graphdata, i.e. 3 Arrays, one saving the amount of neighbors (vertices), one the actual neighbors (edges), and the last for saving the weight of the edge
 // Should the Graph use OpenCl types, i.e. cl_uint??
 struct Graph
@@ -18,6 +20,7 @@ struct Graph
 typedef struct Graph Graph;
 
 
+cl_float** getAdjMatrix(unsigned vertices,unsigned edges);
 Graph* getEmptyGraph(unsigned vertices, unsigned edges);
 Graph* getTreeGraphWeight(int level, int edges);
 Graph* getTreeGraph(int level, int edges);
