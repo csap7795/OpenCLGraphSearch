@@ -5,30 +5,57 @@
 #include <math.h>
 #include <float.h>
 
-cl_float** getAdjMatrix(unsigned vertices,unsigned edges)
+
+Graph* matrixToGraph(cl_float** matrix, int length)
 {
-    cl_float** mat = (cl_float**)malloc(sizeof(cl_float*) * vertices);
-    for(int i = 0; i<vertices;i++)
-        mat[i] = (cl_float*)malloc(sizeof(cl_float)*vertices);
+    //Count Edges
+    unsigned edgecount = 0;
+    for(int i = 0; i< length;i++)
+        for(int j = 0; j<length;j++)
+            if(matrix[i][j] != CL_FLT_MAX && matrix[i][j] != 0)
+                edgecount++;
 
-    for(int i = 0; i<vertices; i++)
-        for(int j = 0; j<vertices; j++)
-            if(i == j)
-                mat[i][j] = 0.0f;
-            else
-                mat[i][j] = CL_FLT_MAX;
+    Graph* graph = getEmptyGraph(length,edgecount);
 
-    srand(time(NULL));
-
-    for(int k = 1; k<edges; k++)
+    //fill the graph
+    edgecount = 0;
+    graph->vertices[0] = 0;
+    for(int i = 0; i<length-1;i++)
     {
-        int j;
-        int i = rand()%vertices;
-        while(( j = rand()%vertices) == i);
-        mat[i][j] = (float)((double)rand()/(double)RAND_MAX);
+        for(int j = 0; j<length;j++)
+            if(matrix[i][j] != CL_FLT_MAX && matrix[i][j] != 0)
+            {
+                graph->edges[edgecount] = j;
+                graph->weight[edgecount] = matrix[i][j];
+                graph->vertices[i+1] = ++edgecount;
 
+            }
     }
-    return mat;
+    // for the last row, only calculate the edges
+    for(int j = 0; j<length;j++)
+    {
+        if(matrix[length-1][j] != CL_FLT_MAX)
+        {
+            graph->edges[edgecount] = j;
+            graph->weight[edgecount] = matrix[length-1][j];
+            edgecount++;
+        }
+    }
+
+    return graph;
+
+}
+
+Graph* createNegativeCycleGraph(unsigned vertices)
+{
+    Graph* graph = getEmptyGraph(vertices,vertices);
+    for(int i = 0; i<graph->V;i++)
+    {
+        graph->vertices[i] = i;
+        graph->edges[i] = (i+1) % graph->V;
+        graph->weight[i] = -1.0f;
+    }
+    return graph;
 }
 
 Graph* getEmptyGraph(unsigned vertices, unsigned edges)

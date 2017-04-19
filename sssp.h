@@ -4,7 +4,7 @@
 
 #include <graph.h>
 
-unsigned long sssp(Graph* graph, unsigned source,unsigned device_num );
+unsigned long sssp(Graph* graph,cl_float* out_cost ,unsigned source,unsigned device_num );
 
 
 

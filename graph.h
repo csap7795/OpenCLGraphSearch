@@ -20,12 +20,16 @@ struct Graph
 typedef struct Graph Graph;
 
 
-cl_float** getAdjMatrix(unsigned vertices,unsigned edges);
+Graph* matrixToGraph(cl_float** matrix, int length);
+//cl_float** getTestMatrix(unsigned vertices);
+Graph* createNegativeCycleGraph(unsigned vertices);
+//cl_float** getAdjMatrix(unsigned vertices,unsigned edges);
 Graph* getEmptyGraph(unsigned vertices, unsigned edges);
 Graph* getTreeGraphWeight(int level, int edges);
 Graph* getTreeGraph(int level, int edges);
 Graph* getRandomGraph (int verticeCount, int edges_per_vertex);
 void freeGraph(Graph* graph);
 void printGraph(Graph* graph);
+void fillPathMatrix(cl_uint** matrix, unsigned length);
 
 #endif // GRAPH_H_INCLUDED

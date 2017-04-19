@@ -2,6 +2,7 @@
 #define TOPO_SORT_H_INCLUDED
 #include <graph.h>
 
-unsigned long topological_order(Graph* graph,unsigned device_num );
+
+void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device_num );
 
 #endif // TOPO_SORT_H_INCLUDED

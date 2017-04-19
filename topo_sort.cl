@@ -22,10 +22,12 @@ __kernel void initialize(__global unsigned *inEdges,__global unsigned *order,__g
     }
     else
     {
+        order[id] = UINT_MAX;
         active[id] = false;
     }
 }
 
+// If the source node is active, the corresponding edge in the messageBuffer is set to 1, indicating that this edge can be neglated for the topological order
 __kernel void edgeCompute(__global unsigned *inEdges,__global unsigned *sourceVertex, __global unsigned *messageWriteIndex, __global bool *messageBuffer, __global bool *active)
 {
     size_t id = get_global_id(0);

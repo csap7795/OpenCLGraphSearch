@@ -22,7 +22,7 @@ static void build_kernel(size_t device_num)
     program = cluBuildProgramFromFile(context,device,kernel_file,tmp);
 }
 
-unsigned long topological_order(Graph* graph,unsigned device_num )
+void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device_num )
 {
 
     build_kernel(device_num);
@@ -109,7 +109,6 @@ unsigned long topological_order(Graph* graph,unsigned device_num )
     err = clEnqueueReadBuffer(command_queue,finished_flag,CL_TRUE,0,sizeof(cl_bool),&finished,0,NULL,NULL);
 
     // start looping both main kernels
-
     start_time = time_ms();
     while(!finished)
     {
@@ -129,19 +128,15 @@ unsigned long topological_order(Graph* graph,unsigned device_num )
     //printf("Time for Calculating edgeVerticeMessage : %lu\n",total_time);
 
     cl_uint* order_parallel = (cl_uint*) malloc(sizeof(cl_uint) * graph->V);
-    cl_uint* order_parallel_ordered = (cl_uint*) malloc(sizeof(cl_uint) * graph->V);
     err = clEnqueueReadBuffer(command_queue,order_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,order_parallel,0,NULL,NULL);
 
     // Abgleich auf Unsigned max um zu checken ob Topologische Ordnung Existiert.
     for(int i = 0; i<graph->V;i++)
     {
-        order_parallel_ordered[i] = order_parallel[oldToNew[i]];
-        printf("%u\t",order_parallel_ordered[i]);
+        out_order_parallel[i] = order_parallel[oldToNew[i]];
     }
 
     free(order_parallel);
-    free(order_parallel_ordered);
-
 
     //Clean up
     free(sourceVerticesSorted);
@@ -151,23 +146,21 @@ unsigned long topological_order(Graph* graph,unsigned device_num )
     free(oldToNew);
 
     err = clFlush(command_queue);
-    err = clFinish(command_queue);
-    err = clReleaseKernel(init_kernel);
-    err = clReleaseKernel(edge_kernel);
-    err = clReleaseKernel(vertex_kernel);
-    err = clReleaseProgram(program);
-    err = clReleaseMemObject(message_buffer);
-    err = clReleaseMemObject(messageWriteIndex_buffer);
-    err = clReleaseMemObject(inEdges_buffer);
-    err = clReleaseMemObject(sourceVertices_buffer);
-    err = clReleaseMemObject(order_buffer);
-    err = clReleaseMemObject(active_buffer);
-    err = clReleaseMemObject(offset_buffer);
-    err = clReleaseMemObject(finished_flag);
-    err = clReleaseCommandQueue(command_queue);
-    err = clReleaseContext(context);
-
-    return total_time;
+    err |= clFinish(command_queue);
+    err |= clReleaseKernel(init_kernel);
+    err |= clReleaseKernel(edge_kernel);
+    err |= clReleaseKernel(vertex_kernel);
+    err |= clReleaseProgram(program);
+    err |= clReleaseMemObject(message_buffer);
+    err |= clReleaseMemObject(messageWriteIndex_buffer);
+    err |= clReleaseMemObject(inEdges_buffer);
+    err |= clReleaseMemObject(sourceVertices_buffer);
+    err |= clReleaseMemObject(order_buffer);
+    err |= clReleaseMemObject(active_buffer);
+    err |= clReleaseMemObject(offset_buffer);
+    err |= clReleaseMemObject(finished_flag);
+    err |= clReleaseCommandQueue(command_queue);
+    err |= clReleaseContext(context);
 }
 
 

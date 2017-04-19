@@ -11,7 +11,7 @@ float combine(__global float *messageBuffer, unsigned numMessages, unsigned inde
     }
     return min;
 }
-__kernel void initialize(__global float *cost, __global bool *active, unsigned source)
+__kernel void initialize(__global float *cost,__global bool *active, unsigned source)
 {
     size_t id = get_global_id(0);
     if(id == source)

@@ -31,7 +31,7 @@ float test_dijkstra(Graph* graph,unsigned device_id)
     for(int i = 0; i<TEST_ITERATIONS;i++)
     {
         unsigned source = rand() % graph->V;
-        average_time += dijkstra_parallel(graph,source,device_id);
+        average_time += dijkstra_parallel(graph,source,device_id,NULL,NULL,NULL,NULL);
     }
     float divisor = TEST_ITERATIONS;
     return average_time/divisor;

@@ -11,10 +11,6 @@
 #include <unistd.h>
 #include <libgen.h>
 
-
-#define KERNEL_FILENAME "/home/chris/Dokumente/OpenCL/CodeBlocks Projekte/GraphSearchLibrary/bfs_kernel.cl"
-#define CL_DEVICE 1
-
 #define CHUNK_SIZE 256
 #define W_SZ 16
 
@@ -43,7 +39,7 @@ static void build_program(size_t device_num)
 }
 
 /* Outperforms baseline approach 3 times with groupsize 64 vertices 100000 and edges per vertex 1000*/
-void bfs_parallel_workgroup(Graph* graph, unsigned source, size_t group_size, unsigned device_num)
+void bfs_parallel_workgroup(Graph* graph, cl_uint* out_cost, cl_uint* out_path,unsigned source, size_t group_size, unsigned device_num)
 {
     /* If group_size smaller than W_SZ kernel will fail */
     if(group_size < W_SZ)
@@ -67,6 +63,9 @@ void bfs_parallel_workgroup(Graph* graph, unsigned source, size_t group_size, un
     cl_mem level_buffer = clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_uint) * total, NULL,&err);
     CLU_ERRCHECK(err,"Failed creating level_buffer");
 
+    cl_mem path_buffer = clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(cl_uint) * total, NULL,&err);
+    CLU_ERRCHECK(err,"Failed creating level_buffer");
+
     cl_mem finished_flag = clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(cl_bool), NULL,&err);
     CLU_ERRCHECK(err,"Failed creating finished_flag");
 
@@ -84,8 +83,8 @@ void bfs_parallel_workgroup(Graph* graph, unsigned source, size_t group_size, un
     CLU_ERRCHECK(err,"Failed to create bfs baseline kernel from program");
 
     // Set Kernel Arguments
-    cluSetKernelArguments(init_kernel,3,sizeof(cl_mem),(void*)&level_buffer,sizeof(cl_mem),(void*)&finished_flag,sizeof(cl_uint),&source);
-    cluSetKernelArguments(bfs_workgroup_kernel,5,sizeof(cl_mem),(void*)&vertice_buffer,sizeof(cl_mem),(void*)&edge_buffer,sizeof(cl_mem),(void*)&level_buffer,sizeof(cl_mem),(void*)&finished_flag,sizeof(cl_uint),&current_level);
+    cluSetKernelArguments(init_kernel,4,sizeof(cl_mem),(void*)&level_buffer,sizeof(cl_mem),(void*)&path_buffer,sizeof(cl_mem),(void*)&finished_flag,sizeof(cl_uint),&source);
+    cluSetKernelArguments(bfs_workgroup_kernel,6,sizeof(cl_mem),(void*)&vertice_buffer,sizeof(cl_mem),(void*)&edge_buffer,sizeof(cl_mem),(void*)&level_buffer,sizeof(cl_mem),(void*)&path_buffer,sizeof(cl_mem),(void*)&finished_flag,sizeof(cl_uint),&current_level);
 
     // Execute Kernels
     size_t globalSize = graph->V;
@@ -96,7 +95,7 @@ void bfs_parallel_workgroup(Graph* graph, unsigned source, size_t group_size, un
     size_t localSize = group_size;
     bool finished;
 
-    while(true)
+    for(int i=0; i<graph->V;i++)
     {
         CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, bfs_workgroup_kernel, 1, NULL, &globalSize, &localSize, 0, NULL, NULL), "Failed to enqueue 2D kernel");
         err = clEnqueueReadBuffer(command_queue,finished_flag,CL_TRUE,0,sizeof(cl_bool),&finished,0,NULL,NULL);
@@ -107,26 +106,12 @@ void bfs_parallel_workgroup(Graph* graph, unsigned source, size_t group_size, un
         current_level++;
         finished = true;
         err = clEnqueueWriteBuffer(command_queue, finished_flag, CL_TRUE, 0, sizeof(cl_bool), &finished , 0, NULL, NULL);
-        clSetKernelArg(bfs_workgroup_kernel,4,sizeof(cl_uint),&current_level);
+        clSetKernelArg(bfs_workgroup_kernel,5,sizeof(cl_uint),&current_level);
 
     }
 
-    /* Test if correct*/
-   /*
-    cl_uint* levels = (cl_uint*)malloc(sizeof(cl_uint)*graph->V);
-    err = clEnqueueReadBuffer(command_queue,level_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,levels,0,NULL,NULL);
-    cl_uint* test = bfs_serial(graph,source);
-
-    for(int i = 0; i<graph->V;i++)
-    {
-        if(levels[i] != test[i]){
-            printf("False\n");
-            break;
-        }
-    }
-
-    free(test);
-    free(levels);*/
+    err = clEnqueueReadBuffer(command_queue,level_buffer,CL_FALSE,0,sizeof(cl_uint) * graph->V,out_cost,0,NULL,NULL);
+    err = clEnqueueReadBuffer(command_queue,path_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,out_path,0,NULL,NULL);
 
     //finalize
     err = clFinish(command_queue);
@@ -136,6 +121,7 @@ void bfs_parallel_workgroup(Graph* graph, unsigned source, size_t group_size, un
     err |= clReleaseMemObject(vertice_buffer);
     err |= clReleaseMemObject(edge_buffer);
     err |= clReleaseMemObject(level_buffer);
+    err |= clReleaseMemObject(path_buffer);
     err |= clReleaseMemObject(finished_flag);
     err |= clReleaseCommandQueue(command_queue);
     err |= clReleaseContext(context);
@@ -146,7 +132,7 @@ void bfs_parallel_workgroup(Graph* graph, unsigned source, size_t group_size, un
 
 }
 
-void bfs_parallel_baseline(Graph* graph, unsigned source, unsigned device_num)
+void bfs_parallel_baseline(Graph* graph, cl_uint* out_cost, cl_uint* out_path, unsigned source, unsigned device_num)
 {
     build_program(device_num);
 
@@ -161,6 +147,9 @@ void bfs_parallel_baseline(Graph* graph, unsigned source, unsigned device_num)
     CLU_ERRCHECK(err,"Failed creating edgebuffer");
 
     cl_mem level_buffer = clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_uint) * graph->V, NULL,&err);
+    CLU_ERRCHECK(err,"Failed creating level_buffer");
+
+    cl_mem path_buffer = clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(cl_uint) * graph->V, NULL,&err);
     CLU_ERRCHECK(err,"Failed creating level_buffer");
 
     cl_mem finished_flag = clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(cl_bool), NULL,&err);
@@ -181,8 +170,8 @@ void bfs_parallel_baseline(Graph* graph, unsigned source, unsigned device_num)
     CLU_ERRCHECK(err,"Failed to create bfs baseline kernel from program");
 
     // Set Kernel Arguments
-    cluSetKernelArguments(init_kernel,3,sizeof(cl_mem),(void*)&level_buffer,sizeof(cl_mem),(void*)&finished_flag,sizeof(cl_uint),&source);
-    cluSetKernelArguments(bfs_kernel,5,sizeof(cl_mem),(void*)&vertice_buffer,sizeof(cl_mem),(void*)&edge_buffer,sizeof(cl_mem),(void*)&level_buffer,sizeof(cl_mem),(void*)&finished_flag,sizeof(cl_uint),&current_level);
+    cluSetKernelArguments(init_kernel,4,sizeof(cl_mem),(void*)&level_buffer,sizeof(cl_mem),(void*)&path_buffer,sizeof(cl_mem),(void*)&finished_flag,sizeof(cl_uint),&source);
+    cluSetKernelArguments(bfs_kernel,6,sizeof(cl_mem),(void*)&vertice_buffer,sizeof(cl_mem),(void*)&edge_buffer,sizeof(cl_mem),(void*)&level_buffer,sizeof(cl_mem),(void*)&path_buffer,sizeof(cl_mem),(void*)&finished_flag,sizeof(cl_uint),&current_level);
 
     // Execute Kernels
     size_t globalSize = graph->V;
@@ -190,9 +179,7 @@ void bfs_parallel_baseline(Graph* graph, unsigned source, unsigned device_num)
 
     //start looping the main kernel
     bool finished;
-    cl_uint* levels = (cl_uint*)malloc(sizeof(cl_uint)*graph->V);
-
-    while(true)
+    for(int i=0; i<graph->V;i++)
     {
         CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, bfs_kernel, 1, NULL, &globalSize, NULL, 0, NULL, NULL), "Failed to enqueue 2D kernel");
         err = clEnqueueReadBuffer(command_queue,finished_flag,CL_TRUE,0,sizeof(cl_bool),&finished,0,NULL,NULL);
@@ -203,24 +190,13 @@ void bfs_parallel_baseline(Graph* graph, unsigned source, unsigned device_num)
         current_level++;
         finished = true;
         err = clEnqueueWriteBuffer(command_queue, finished_flag, CL_TRUE, 0, sizeof(cl_bool), &finished , 0, NULL, NULL);
-        clSetKernelArg(bfs_kernel,4,sizeof(cl_uint),&current_level);
+        clSetKernelArg(bfs_kernel,5,sizeof(cl_uint),&current_level);
 
     }
 
-    /* Test if correct*/
-    err = clEnqueueReadBuffer(command_queue,level_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,levels,0,NULL,NULL);
-    cl_uint* test = bfs_serial(graph,source);
-
-    for(int i = 0; i<graph->V;i++)
-    {
-        if(levels[i] != test[i]){
-            printf("False\n");
-            break;
-        }
-    }
-
-    free(test);
-    free(levels);
+    // Read out data from the buffers
+    err = clEnqueueReadBuffer(command_queue,level_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,out_cost,0,NULL,NULL);
+    err = clEnqueueReadBuffer(command_queue,path_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,out_path,0,NULL,NULL);
 
     //finalize
     err = clFinish(command_queue);
@@ -230,6 +206,7 @@ void bfs_parallel_baseline(Graph* graph, unsigned source, unsigned device_num)
     err |= clReleaseMemObject(vertice_buffer);
     err |= clReleaseMemObject(edge_buffer);
     err |= clReleaseMemObject(level_buffer);
+    err |= clReleaseMemObject(path_buffer);
     err |= clReleaseMemObject(finished_flag);
     err |= clReleaseCommandQueue(command_queue);
     err |= clReleaseContext(context);

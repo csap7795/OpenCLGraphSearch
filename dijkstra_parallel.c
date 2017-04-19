@@ -31,7 +31,8 @@ static void build_program(size_t device_num)
     program = cluBuildProgramFromFile(context,device,kernel_file,NULL);
 }
 
-unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_num)
+/*Is able to detect negative cycles in the graph under the condition that they are connected to the source node */
+unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_num, cl_float* out_cost, cl_uint* out_path, bool* check_cycles, bool* negative_cycles)
 {
     /*First, build the program*/
     build_program(device_num);
@@ -57,6 +58,9 @@ unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_n
     cl_mem cost_buffer = clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_float) * (graph->V), NULL, &err);
     CLU_ERRCHECK(err,"Failed creating cost_buffer");
 
+    cl_mem predecessor_buffer = clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_uint) * (graph->V), NULL, &err);
+    CLU_ERRCHECK(err,"Failed creating predecessor_buffer");
+
     cl_mem update_cost_buffer = clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_float) * (graph->V), NULL, &err);
     CLU_ERRCHECK(err,"Failed creating update_cost_buffer");
 
@@ -77,14 +81,15 @@ unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_n
     CLU_ERRCHECK(err,"Failed to create initializing_buffers kernel from program");
 
     cl_kernel dijkstra1_kernel = clCreateKernel(program,"dijkstra1",&err);
-    CLU_ERRCHECK(err,"Failed to create bfs baseline kernel from program");
+    CLU_ERRCHECK(err,"Failed to create dijkstra1 kernel from program");
 
     cl_kernel dijkstra2_kernel = clCreateKernel(program,"dijkstra2",&err);
-    CLU_ERRCHECK(err,"Failed to create bfs baseline kernel from program");
+    CLU_ERRCHECK(err,"Failed to create dijkstra2 kernel from program");
+
 
     //Set KernelArguments
-    cluSetKernelArguments(init_kernel,5,sizeof(cl_mem),&mask_buffer,sizeof(cl_mem),&cost_buffer,sizeof(cl_mem),&update_cost_buffer,sizeof(cl_mem),&semaphore_buffer,sizeof(cl_uint),&source);
-    cluSetKernelArguments(dijkstra1_kernel,7,sizeof(cl_mem),(void*)&vertice_buffer,sizeof(cl_mem),(void*)&edge_buffer,sizeof(cl_mem),(void*)&weight_buffer,sizeof(cl_mem),(void*)&mask_buffer,sizeof(cl_mem),(void*)&cost_buffer,sizeof(cl_mem),(void*)&update_cost_buffer,sizeof(cl_mem),(void*)&semaphore_buffer);
+    cluSetKernelArguments(init_kernel,6,sizeof(cl_mem),&mask_buffer,sizeof(cl_mem),&cost_buffer,sizeof(cl_mem),&update_cost_buffer,sizeof(cl_mem),(void*)&predecessor_buffer,sizeof(cl_mem),&semaphore_buffer,sizeof(cl_uint),&source);
+    cluSetKernelArguments(dijkstra1_kernel,8,sizeof(cl_mem),(void*)&vertice_buffer,sizeof(cl_mem),(void*)&edge_buffer,sizeof(cl_mem),(void*)&weight_buffer,sizeof(cl_mem),(void*)&mask_buffer,sizeof(cl_mem),(void*)&cost_buffer,sizeof(cl_mem),(void*)&update_cost_buffer,sizeof(cl_mem),(void*)&predecessor_buffer,sizeof(cl_mem),(void*)&semaphore_buffer);
     cluSetKernelArguments(dijkstra2_kernel,4,sizeof(cl_mem),(void*)&mask_buffer,sizeof(cl_mem),(void*)&cost_buffer,sizeof(cl_mem),(void*)&update_cost_buffer,sizeof(cl_mem),(void*)&finished_flag);
 
     // Execute the OpenCL kernel for initializing Buffers
@@ -94,17 +99,76 @@ unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_n
     // start looping both main kernels
     bool finished;
 
-    while(true)
+    // Use for loop instead over Graph->Vertices to implement Bellman Ford -> Therefore run a last kernel and check for changes.
+    int i;
+    for(i = 0; i<graph->V;i++)
     {
         CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, dijkstra1_kernel, 1, NULL, &globalSize, NULL, 0, NULL, NULL), "Failed to enqueue Dijkstra1 kernel");
         CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, dijkstra2_kernel, 1, NULL, &globalSize, NULL, 0, NULL, NULL), "Failed to enqueue Dijkstra2 kernel");
         err = clEnqueueReadBuffer(command_queue,finished_flag,CL_TRUE,0,sizeof(cl_bool),&finished,0,NULL,NULL);
 
-        if(finished)
-            break;
+        //if(finished)
+            //break;
 
         finished = true;
         err = clEnqueueWriteBuffer(command_queue, finished_flag, CL_TRUE, 0, sizeof(cl_bool), &finished , 0, NULL, NULL);
+
+    }
+
+    if(i!=graph->V && check_cycles != NULL)
+    {
+        *check_cycles = false;
+    }
+
+    if(out_cost != NULL && out_path != NULL)
+    {
+        err = clEnqueueReadBuffer(command_queue,cost_buffer,CL_FALSE,0,sizeof(cl_float) * graph->V,out_cost,0,NULL,NULL);
+        err = clEnqueueReadBuffer(command_queue,predecessor_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,out_path,0,NULL,NULL);
+    }
+
+    if(check_cycles != NULL && *check_cycles)
+    {
+
+        cl_kernel negativeCycle_kernel = clCreateKernel(program,"negativeCycle",&err);
+        CLU_ERRCHECK(err,"Failed to create negative cycle kernel from program");
+
+        cl_mem negative_cycle_buffer = clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(cl_short) * (graph->V), NULL, &err);
+        CLU_ERRCHECK(err,"Failed creating verticebuffer");
+
+        cl_mem detected_buffer = clCreateBuffer(context,CL_MEM_READ_WRITE, sizeof(cl_bool), NULL, &err);
+        CLU_ERRCHECK(err,"Failed creating verticebuffer");
+
+        cluSetKernelArguments(negativeCycle_kernel,6,sizeof(cl_mem),&vertice_buffer,sizeof(cl_mem),&edge_buffer,sizeof(cl_mem),&weight_buffer,sizeof(cl_mem),(void*)&cost_buffer,sizeof(cl_mem),&negative_cycle_buffer,sizeof(cl_mem),&detected_buffer);
+
+
+        bool detected = false;
+        err = clEnqueueWriteBuffer(command_queue, detected_buffer, CL_TRUE, 0, sizeof(cl_bool), &detected , 0, NULL, NULL);
+        CLU_ERRCHECK(err,"Failed copying detected_flag to detected_buffers");
+
+        /*Execute the kernel*/
+        CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, negativeCycle_kernel, 1, NULL, &globalSize, NULL, 0, NULL, NULL),"Error executing InitializeKernel");
+
+        /*read back results */
+        err = clEnqueueReadBuffer(command_queue,detected_buffer,CL_TRUE,0,sizeof(cl_bool),&detected,0,NULL,NULL);
+
+        /* If the kernel detected negative cycles, read back where the negative cycles are located, else write false into check_cycles*/
+        if(detected && negative_cycles != NULL)
+        {
+            cl_short *tmp = (cl_short*)malloc(sizeof(cl_short)*graph->V);
+            err = clEnqueueReadBuffer(command_queue,negative_cycle_buffer,CL_TRUE,0,sizeof(cl_short)*graph->V,tmp,0,NULL,NULL);
+            for(int i = 0; i<graph->V;i++)
+                negative_cycles[i] = tmp[i];
+            free(tmp);
+        }
+        else
+        {
+            *check_cycles = false;
+        }
+        err = clReleaseMemObject(negative_cycle_buffer);
+        err |= clReleaseMemObject(detected_buffer);
+        err |= clReleaseKernel(negativeCycle_kernel);
+
+        CLU_ERRCHECK(err, "Failed during finalizing negativeCycle buffers & kernel");
 
     }
 
@@ -129,23 +193,25 @@ unsigned long dijkstra_parallel(Graph* graph, unsigned source, unsigned device_n
 
     // Clean up
     err = clFlush(command_queue);
-    err = clFinish(command_queue);
-    err = clReleaseKernel(init_kernel);
-    err = clReleaseKernel(dijkstra1_kernel);
-    err = clReleaseKernel(dijkstra2_kernel);
-    err = clReleaseProgram(program);
-    err = clReleaseMemObject(vertice_buffer);
-    err = clReleaseMemObject(edge_buffer);
-    err = clReleaseMemObject(weight_buffer);
-    err = clReleaseMemObject(cost_buffer);
-    err = clReleaseMemObject(update_cost_buffer);
-    err = clReleaseMemObject(mask_buffer);
-    err = clReleaseMemObject(semaphore_buffer);
-    err = clReleaseMemObject(finished_flag);
-    err = clReleaseCommandQueue(command_queue);
-    err = clReleaseContext(context);
+    err |= clFinish(command_queue);
+    err |= clReleaseKernel(init_kernel);
+    err |= clReleaseKernel(dijkstra1_kernel);
+    err |= clReleaseKernel(dijkstra2_kernel);
+    err |= clReleaseProgram(program);
+    err |= clReleaseMemObject(vertice_buffer);
+    err |= clReleaseMemObject(edge_buffer);
+    err |= clReleaseMemObject(weight_buffer);
+    err |= clReleaseMemObject(cost_buffer);
+    err |= clReleaseMemObject(update_cost_buffer);
+    err |= clReleaseMemObject(predecessor_buffer);
+    err |= clReleaseMemObject(mask_buffer);
+    err |= clReleaseMemObject(semaphore_buffer);
+    err |= clReleaseMemObject(finished_flag);
+    err |= clReleaseCommandQueue(command_queue);
+    err |= clReleaseContext(context);
+
+    CLU_ERRCHECK(err, "Failed during finalizing OpenCL");
 
     unsigned long total_time = time_ms() - start_time;
     return total_time;
 }
-

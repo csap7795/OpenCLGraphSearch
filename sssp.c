@@ -37,7 +37,7 @@ static void build_kernel(size_t device_num)
     program = cluBuildProgramFromFile(context,device,kernel_file,tmp);
 }
 
-unsigned long sssp(Graph* graph, unsigned source,unsigned device_num )
+unsigned long sssp(Graph* graph,cl_float* out_cost, unsigned source,unsigned device_num)
 {
 
     unsigned long start_time = time_ms();
@@ -155,12 +155,11 @@ unsigned long sssp(Graph* graph, unsigned source,unsigned device_num )
     //printf("Time for Calculating edgeVerticeMessage : %lu\n",total_time);
 
     float* cost_parallel = (float*) malloc(sizeof(float) * graph->V);
-    float* cost_parallel_ordered = (float*) malloc(sizeof(float) * graph->V);
     err = clEnqueueReadBuffer(command_queue,cost_buffer,CL_TRUE,0,sizeof(cl_float) * graph->V,cost_parallel,0,NULL,NULL);
 
     for(int i = 0; i<graph->V;i++)
     {
-        cost_parallel_ordered[i] = cost_parallel[oldToNew[i]];
+        out_cost[i] = cost_parallel[oldToNew[i]];
     }
 
     //Just to check if the results are equal
@@ -179,7 +178,6 @@ unsigned long sssp(Graph* graph, unsigned source,unsigned device_num )
     free(cost_serial);*/
 
     free(cost_parallel);
-    free(cost_parallel_ordered);
 
 
     //Clean up
