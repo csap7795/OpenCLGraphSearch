@@ -1,0 +1,457 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <graph.h>
+#include <assert.h>
+#include <dijkstra_parallel.h>
+#include <edge_vertice_message.h>
+#include <graph_transpose.h>
+#include <sssp.h>
+#include <topo_sort.h>
+#include <scan.h>
+#include <time.h>
+#include <time_ms.h>
+#include <floyd_warshall.h>
+#include <bfs_parallel.h>
+#include <graph.h>
+#include <alloca.h>
+#include <matrix.h>
+#include <unistd.h>
+#include <libgen.h>
+
+#include <test_floyd_warshall.h>
+
+#define TEST_ITERATIONS 5
+
+/*float test_sssp(Graph* graph,unsigned device_id)
+{
+    srand(time(NULL));
+
+    unsigned long average_time = 0;
+    for(int i = 0; i<TEST_ITERATIONS;i++)
+    {
+        unsigned source = rand() % graph->V;
+        average_time += sssp(graph,source,device_id);
+    }
+    float divisor = TEST_ITERATIONS;
+    return average_time/divisor;
+}
+
+float test_dijkstra(Graph* graph,unsigned device_id)
+{
+    srand(time(NULL));
+
+    unsigned long average_time = 0;
+    for(int i = 0; i<TEST_ITERATIONS;i++)
+    {
+        unsigned source = rand() % graph->V;
+        average_time += dijkstra_parallel(graph,source,device_id,NULL,NULL,NULL,NULL);
+    }
+    float divisor = TEST_ITERATIONS;
+    return average_time/divisor;
+}
+
+float test_bfs_baseline(Graph* graph, unsigned device_id)
+{
+    srand(time(NULL));
+    unsigned long average_time = 0;
+    for(int i = 0; i<TEST_ITERATIONS;i++)
+    {
+        unsigned source = rand() % graph->V;
+        unsigned long start_time = time_ms();
+        bfs_parallel_baseline(graph,source,device_id);
+        average_time += time_ms()-start_time;
+    }
+    float divisor = TEST_ITERATIONS;
+    return average_time/divisor;
+}
+
+float test_bfs_workgroup(Graph* graph, unsigned group_size,unsigned device_id)
+{
+    srand(time(NULL));
+    unsigned long average_time = 0;
+    for(int i = 0; i<TEST_ITERATIONS;i++)
+    {
+        unsigned source = rand() % graph->V;
+        unsigned long start_time = time_ms();
+        bfs_parallel_workgroup(graph,source,group_size,device_id);
+        average_time += time_ms()-start_time;
+    }
+    float divisor = TEST_ITERATIONS;
+    return average_time/divisor;
+}*/
+
+
+
+#define G_SIZE 512
+#define SIZE 1024*1024*128
+#define EPV 10
+
+void createGraphData()
+{
+    unsigned graph_size = 1024;
+    for(int i = graph_size; i<graph_size*10;i*=10)
+    {
+        Graph* graph = getRandomGraph(i,EPV);
+        connectGraphbfs(graph);
+        char tmp[1024];
+        sprintf(tmp, "Graph/%dk-%depv.g",i/1000,EPV);
+        writeGraphToFile(tmp,graph);
+        free(graph);
+    }
+}
+
+int main(int argc, char* argv[])
+{
+
+    /*Graph* graph = getRandomGraph(512,10);
+    cl_float **mat = GraphToMatrix(graph);
+
+    Graph* graph2 = matrixToGraph(mat,graph->V);
+
+    printf("%s\n",graph_equal(graph,graph2) ? "TRUE" : "FALSE");*/
+
+
+    if(argc != 2)
+    {   printf("To few Arguments\n");
+        return 0;
+    }
+	cl_float** mat = getAdjMatrix(G_SIZE,G_SIZE*(G_SIZE/100));
+    verify_floyd_warshall_global_gpu(mat,
+	
+
+    /*const char* filename1 = argv[1];
+
+    srand(time(NULL));
+    Graph* graph = readGraphFromFile(filename1);
+    unsigned source = (unsigned)rand()%graph->V;
+    cl_float **mat = GraphToMatrix(graph);
+
+    benchmark_floyd_warshall(mat,graph->V,EPV);
+
+    freeFloatMatrix(mat,graph->V);
+    freeGraph(graph);*/
+
+
+    /*char cfp[1024];
+    char tmp[1024];
+    sprintf(cfp, "%s",__FILE__);
+    //sprintf(tmp,"%s",dirname(dirname(cfp)));
+    printf("%s\n",cfp);*/
+    return 0;
+
+    /*cl_uint *input = (cl_uint*)malloc(sizeof(cl_uint)*SIZE);
+    cl_uint *output = (cl_uint*)malloc(sizeof(cl_uint)*SIZE);
+    for(unsigned i = 0; i<SIZE;i++)
+    {
+        input[i] = (cl_uint)rand()%10;
+    }
+    for(int i = 0; i<2;i++)
+    scan_parallel(input,output,SIZE,i);
+
+    free(input);
+    free(output);*/
+
+    /*for(int i = 0; i<1;i++)
+    {
+        test_sssp();
+        test_dijkstra();
+    }*/
+    //float** mat = getAdjMatrix(G_SIZE,G_SIZE*(G_SIZE/100));
+    //parallel_floyd_warshall_workgroup_gpu(mat,G_SIZE,0);
+    //parallel_floyd_warshall_gpu(mat,G_SIZE,0);
+    //parallel_floyd_warshall_workgroup_gpu(mat,G_SIZE,1);
+    //parallel_floyd_warshall(mat,G_SIZE,1);
+    //free(mat);
+    /*Graph* graph = createNegativeCycleGraph(1000);
+    float* cost = (float*) malloc(sizeof(float)*graph->V);
+    unsigned* predecessor = (unsigned*)malloc(sizeof(unsigned)*graph->V);
+    bool detect_cycles = true;
+    bool* negative_cycles = (bool*)malloc(sizeof(bool)*graph->V);
+    dijkstra_parallel(graph,0,1,cost,predecessor,&detect_cycles,negative_cycles);
+    free(graph);*/
+    /*Graph* graph = getRandomGraph(10000,100);
+    for(int j= 32; j<=32; j*=2)
+    {
+        for(int i = 0; i<cluCountDevices()-1; i++)
+        {
+           printf("Workgroup approach\t%d groupsize on device %d\t: %.2f ms\n",j,i,test_bfs_workgroup(graph,j,i) );
+        }
+    }
+    for(int i = 0; i<cluCountDevices(); i++)
+    {
+           printf("Baseline approach\ton device %d\t: %.2f ms\n",i,test_bfs_baseline(graph,i) );
+    }
+
+    /*bfs_parallel_baseline(graph,0,0);
+    bfs_parallel_baseline(graph,0,1);
+    bfs_parallel_workgroup(graph,0,32,0);
+    bfs_parallel_workgroup(graph,0,32,1);*/
+
+
+    /*cl_float** floyd = getAdjMatrix(512,10000);
+    parallel_floyd_warshall(floyd,512,1);
+    free(floyd);*/
+
+
+    /*
+    unsigned device_count = cluCountDevices();
+
+    unsigned edges = 10;
+
+    for(int k = 100000;k<500000;k+=100000)
+    {
+        Graph* graph = getRandomGraph(k,edges);
+
+        for(unsigned i = 0; i<device_count; i++)
+        {
+            printf("Optimized\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_sssp(graph,i) );
+
+            printf("Baseline\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_dijkstra(graph,i) );
+        }
+    }
+
+    printf("\n\n");
+
+    for(int k = 1000000;k<5000000;k+=1000000)
+    {
+        Graph* graph = getRandomGraph(k,edges);
+
+        for(unsigned i = 0; i<device_count; i++)
+        {
+            printf("Optimized\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_sssp(graph,i) );
+
+            printf("Baseline\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_dijkstra(graph,i) );
+        }
+    }
+
+    edges *= 10;
+    printf("\n\n");
+
+    for(int k = 10000;k<50000;k+=10000)
+    {
+        Graph* graph = getRandomGraph(k,edges);
+
+        for(unsigned i = 0; i<device_count; i++)
+        {
+            printf("Optimized\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_sssp(graph,i) );
+
+            printf("Baseline\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_dijkstra(graph,i) );
+        }
+    }
+    printf("\n\n");
+
+    for(int k = 100000;k<500000;k+=100000)
+    {
+        Graph* graph = getRandomGraph(k,edges);
+
+        for(unsigned i = 0; i<device_count; i++)
+        {
+            printf("Optimized\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_sssp(graph,i) );
+
+            printf("Baseline\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_dijkstra(graph,i) );
+        }
+    }
+
+    printf("\n\n");
+
+    edges*=10;
+
+    for(int k = 1000;k<5000;k+=1000)
+    {
+        Graph* graph = getRandomGraph(k,edges);
+
+        for(unsigned i = 0; i<device_count; i++)
+        {
+            printf("Optimized\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_sssp(graph,i) );
+
+            printf("Baseline\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_dijkstra(graph,i) );
+        }
+    }
+
+     printf("\n\n");
+
+    for(int k = 10000;k<50000;k+=10000)
+    {
+        Graph* graph = getRandomGraph(k,edges);
+
+        for(unsigned i = 0; i<device_count; i++)
+        {
+            printf("Optimized\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_sssp(graph,i) );
+
+            printf("Baseline\t%d nodes\t %u edges\ton device %d\t: %.2f ms\n",k,edges,i,test_dijkstra(graph,i) );
+        }
+    }*/
+
+    //Graph* graph = getTreeGraph(20,2);
+    /*unsigned length = 1024;
+    cl_uint* input = (cl_uint*)malloc(sizeof(cl_uint) * length);
+    cl_uint* output = (cl_uint*)malloc(sizeof(cl_uint) * length);
+
+    for(int i = 0; i<length;i++)
+    {
+        input[i] = 1;
+    }
+
+    scan_parallel(input,output,length,0);
+
+    //printf(" GPU : %lu ms\n",scan(graph->edges,output,graph->E,0));
+    //printf(" CPU : %lu ms\n",scan(graph->edges,output,graph->E,1));
+    //printf(" SERIAL: %lu ms\n",scan_serial(graph->edges,output,graph->E));
+    free(input);
+    free(output);
+
+    //topological_order(graph,1);
+    //    sssp(graph,0,1);
+    /*Graph* transposed = getEmptyGraph(graph->V,graph->E);
+
+    //printGraph(graph);
+
+    printf("Parallel GPU : %lu\n",transpose_parallel(graph,transposed,0));
+    printf("Parallel CPU: %lu\n",transpose_parallel(graph,transposed,1));
+    printf("Serial : %lu\n",transpose_serial(graph,transposed));*/
+
+    //printGraph(transposed);
+
+    //freeGraph(graph);
+    //freeGraph(transposed);
+
+    /*unsigned long average = 0;
+    for(int j = 60000; j<90000;j+=10000)
+    {
+
+        Graph* graph = getRandomGraph(j,100);
+        printf("GPU with %u Vertices and %u Edges\n",graph->V, graph->E);
+
+        printf("DIJKSTRA_BASELINE:\n\n");
+        for(int i = 0; i<5;i++)
+            average += dijkstra_parallel(graph,i,0);
+
+        printf("%f\n",average/5.0);
+        average = 0;
+
+        printf("\nDIJKSTRA_OPTIMIZED:\n\n");
+        for(int i = 0; i<5;i++)
+            average += sssp(graph,i,0);
+
+        printf("%f\n",average/5.0);
+        average = 0;
+
+
+        printf("\n\nCPU with %u Vertices and %u Edges\n",graph->V, graph->E);
+
+        printf("DIJKSTRA_BASELINE:\n\n");
+        for(int i = 0; i<5;i++)
+            average += dijkstra_parallel(graph,i,1);
+
+        printf("%f\n",average/5.0);
+        average = 0;
+
+        printf("\nDIJKSTRA_OPTIMIZED:\n\n");
+        for(int i = 0; i<5;i++)
+    //printf("Time for Calculating edgeVerticeMessage : %lu\n",total_time);
+            average += sssp(graph,i,1);
+
+        printf("%f\n",average/5.0);
+        average = 0;
+        printf("\n");
+
+        freeGraph(graph);
+    }*/
+
+
+    //sssp(graph,0,true);
+    //sssp(graph,0,false);
+    //sssp(graph,0,false);
+    //dijkstra_parallel_gpu(graph,0);
+    /*Graph* graph = getRandomGraph(5);
+    printGraph(graph);
+    cl_uint* sourceVertices = (cl_uint*) calloc(graph->E,sizeof(cl_uint));
+    cl_uint* messageWriteIndex = (cl_uint*) calloc(graph->E,sizeof(cl_uint));
+    cl_uint* messageReadIndex = (cl_uint*) calloc(graph->V,sizeof(cl_uint));
+    cl_uint* numEdges = (cl_uint*) calloc(graph->V,sizeof(cl_uint));
+    cl_bool* verticeStatus = (cl_bool*) calloc(graph->V,sizeof(cl_bool));
+
+    preprocessing(graph,sourceVertices,messageWriteIndex,messageReadIndex,verticeStatus,numEdges);
+
+
+    printf("NumEdges:\n");
+    for(int i = 0; i<graph->V;i++)
+    {
+        printf("%u\t",numEdges[i]);
+    }
+
+     printf("\nSourceVertices:\n");
+    for(int i = 0; i<graph->E;i++)
+    {
+        printf("%u\t",sourceVertices[i]);
+    }
+
+     printf("\nMessageReadIndex:\n");
+    for(int i = 0; i<graph->V;i++)
+    {
+        printf("%u\t",messageReadIndex[i]);
+    }
+
+     printf("\nMessageWriteIndex:\n");
+    for(int i = 0; i<graph->V;i++)
+    {
+        printf("%u\t",messageWriteIndex[i]);
+    }
+
+    free(numEdges);
+    free(sourceVertices);
+    free(messageReadIndex);
+    free(messageWriteIndex);
+    free(verticeStatus);
+
+    freeGraph(graph);*/
+
+
+    /*for(int i = 0; i<10;i++)
+    {
+        Graph* graph = getRandomGraph(1000);
+        dijkstra_parallel_gpu(graph,i);
+        freeGraph(graph);
+    }*/
+
+    //sizeof(cl_uint) == sizeof(unsigned)? printf("true") : printf("false");
+
+    //printGraph(graph);
+    //printf("%u\n",round_up_globalSize(1025));
+
+    //bfs_parallel_gpu_baseline(graph,0);
+
+    //for(int i = 1; i< 5;i++)
+    //bfs_parallel_gpu_workgroup(graph,0,i*4);
+
+   // bfs_serial(graph,0);
+
+
+
+    //printGraph(graph);
+
+    //printf("%lu",sizeof(float));
+    /*FILE* fp = fopen("./main.c","r");
+
+	assert(fp && "Failed to load kernel file");
+
+	char code[10];
+	char* string = code;
+
+	string = fgets(string,10,fp);
+	printf("%s",string);
+
+	fclose(fp);*/
+
+    /*bfs_parallel_gpu_baseline(graph,0);
+    bfs_parallel_gpu_baseline(graph,2);
+    bfs_parallel_gpu_baseline(graph,1);
+
+    bfs_serial(graph,0);
+    bfs_serial(graph,1);
+    bfs_serial(graph,2);
+
+    freeGraph(graph);*/
+    //testMatrixToGraph();
+}
+
