@@ -42,8 +42,36 @@ void initCsv(const char* filename, unsigned num_devices)
 void writeToCsv(const char* filename, unsigned V, unsigned E, unsigned device_id, unsigned long time)
 {
     FILE *fp = fopen(filename,"a");
+
+    char vertice_char=' ';
+    char edge_char=' ';
+    float vertices = (float)V;
+    if(vertices > 1000)
+    {
+        vertices /= 1000;
+        vertice_char = 'k';
+        if(vertices > 1000)
+        {
+            vertices/=1000;
+            vertice_char = 'm';
+        }
+
+    }
+
+    float edges = (float)E;
+    if(edges > 1000)
+    {
+        edges /= 1000;
+        edge_char = 'k';
+        if(edges > 1000)
+        {
+            edges/=1000;
+            edge_char = 'm';
+        }
+
+    }
     if(device_id == 0)
-        fprintf(fp,"\nV%uk/E%uk, ",V/1000, E/1000);
+        fprintf(fp,"\nV%.1f%c/E%.1f%c, ",vertices,vertice_char,edges,edge_char);
 
     fprintf(fp,"%lu, ",time);
     fclose(fp);

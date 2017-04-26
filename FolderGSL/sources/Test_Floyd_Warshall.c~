@@ -45,8 +45,8 @@ void benchmark_floyd_warshall(cl_float **mat, unsigned length, unsigned epv)
         time_workgroup = time_workgroup/REPEATS;
 
         writeToCsv(csv_file_fw_gpu,length,epv,device,time_gpu);
-        writeToCsv(csv_file_fw_global,length,epv,device,time_global);
-        writeToCsv(csv_file_fw_workgroup,length,epv,device,time_workgroup);
+        writeToCsv(csv_file_fw_global,epv,length,device,time_global);
+        writeToCsv(csv_file_fw_workgroup,epv,length,device,time_workgroup);
     }
 
 }

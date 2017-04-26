@@ -18,18 +18,15 @@ static void build_kernel(size_t device_num)
 {
     device = cluInitDevice(device_num,&context,&command_queue);
     //printf("%s\n\n",cluGetDeviceDescription(device,device_num));
-    char* filename = "/kernels/floyd_warshall.cl";
+    char* filename = "/floyd_warshall.cl";
     char tmp[1024];
     sprintf(tmp, "-DBLOCK_SIZE=%i",BLOCK_SIZE);
     char cfp[1024];
     char kernel_file[1024];
     sprintf(cfp, "%s",__FILE__);
-    sprintf(kernel_file,"%s%s",dirname(cfp),filename);
-    filename = kernel_file;
-    printf("%s",kernel_file);;
-    return;
-
-    //program = cluBuildProgramFromFile(context,device,kernel_file,tmp);
+    sprintf(kernel_file,"%s%s%s",dirname(dirname(cfp)),"/kernels",filename);
+	printf("%s\n",kernel_file);
+    program = cluBuildProgramFromFile(context,device,kernel_file,tmp);
 }
 
 // The graph is available in a adjacency Matrix, where length denotes the number of vertices and device_num the device the user wants to work on.
