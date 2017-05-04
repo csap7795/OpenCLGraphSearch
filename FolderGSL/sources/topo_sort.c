@@ -41,13 +41,14 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
     cl_uint* numEdgesSorted = (cl_uint*) calloc(graph->V, sizeof(cl_uint));
     cl_uint* offset = (cl_uint*) calloc(graph->V,sizeof(cl_uint));
     cl_uint* oldToNew = (cl_uint*) calloc(graph->V,sizeof(cl_uint));
+    cl_uint* newToOld = (cl_uint*) calloc(graph->V,sizeof(cl_uint));
     cl_uint messageBuffersize;
     cl_int err;
 
     //Preprocess Indices and initialize VertexBuffer, Calculate the number of incoming Edges for each vertex and set the sourceVertex of each edge
 
     if(PREPROCESS_ENABLE)
-        preprocessing_parallel(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,offset,&messageBuffersize,1);
+        preprocessing_parallel(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,&messageBuffersize,1);
     else
         preprocessing(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,offset,&messageBuffersize);
 
@@ -147,6 +148,7 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
     free(messageWriteIndex);
     free(offset);
     free(oldToNew);
+    free(newToOld);
     free(order_parallel);
 
     err = clFlush(command_queue);
