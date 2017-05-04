@@ -27,13 +27,13 @@ __kernel void calcSrcDestVertices(__global unsigned *vertices,__global unsigned 
     for(int i = 0 ;i<num_neighbors;i++)
     {
         src[edge_offset+i] = id;
-        unsigned destination = edges[edge_offset+i]
+        unsigned destination = edges[edge_offset+i];
         dest[edge_offset+i] = destination ;
-        atomic_inc(inEdges+dest);
+        atomic_inc(inEdges+destination);
     }
 }
 
-__kernel void edge_transpose(volatile ,__global unsigned *offset, __global unsigned* src, __global unsigned *dest,__global unsigned *weight ,__global unsigned *newEdges, __global unsigned *newWeigth)
+__kernel void edge_transpose(volatile __global unsigned *offset, __global unsigned* source, __global unsigned *dest,__global unsigned *weight ,__global unsigned *newEdges, __global unsigned *newWeight)
 {
     size_t id = get_global_id(0);
     unsigned offset_index = source[id];

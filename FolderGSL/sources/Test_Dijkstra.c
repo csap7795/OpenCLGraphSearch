@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <dijkstra_parallel.h>
 #include <benchmark_utils.h>
+#include <dikstra_path.h>
 
 #define CSVFILENAME_DIJKSTRA "dijkstra.csv"
 #define REPEATS 10
@@ -113,7 +114,6 @@ void dijkstra_serial(Graph* graph, cl_float* cost_array,cl_uint* path_array,unsi
     //unsigned* neighbors = &graph->edges[source];
     unsigned num_neighbors;// = graph->vertices[source+1] - graph->vertices[source];
     unsigned current = source;
-    unsigned long start_time = time_ms();
     while(!finished)
     {
         finished = true;
@@ -149,10 +149,6 @@ void dijkstra_serial(Graph* graph, cl_float* cost_array,cl_uint* path_array,unsi
         current = m;
         mask_array[m] = true;
     }
-
-    unsigned long total_time = time_ms() - start_time;
-    printf("%s\n","test_serial");
-    printf("Time for source node %u serial Dijkstra: %lu\n",source,total_time);
 
     free(mask_array);
 
@@ -211,8 +207,6 @@ void bellman_ford_serial(Graph* graph,cl_float* out_cost, cl_uint* out_path, uns
             }
 
     }
-    printf("%s\n","test_serial");
-    printf("Total time for %u vertices and %u edges:\t %lu\n",graph->V,graph->E,time_ms()-start_time);
     for(cl_uint k = graph->vertices[graph->V-1]; k < graph->E; k++)
     {
         cl_uint neighbor = graph->edges[k];

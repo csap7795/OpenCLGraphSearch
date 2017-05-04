@@ -6,7 +6,7 @@
 #include <time.h>
 #include <time_ms.h>
 #include <stdbool.h>
-#include "benchmark_utils.h"
+#include <benchmark_utils.h>
 
 #define CSVFILENAME_TOPO "topo.csv"
 #define REPEATS 10

@@ -5,6 +5,9 @@
 #include <CL/cl.h>
 #include <cl_utils.h>
 #include <time_ms.h>
+#include <unistd.h>
+#include <libgen.h>
+
 
 static cl_program program;
 static cl_context context;
@@ -70,7 +73,7 @@ unsigned long transpose_serial(Graph* graph, Graph* transposed)
     return total;
 }
 
-unsigned long transpose_parallel(Graph* graph, Graph* transposed, size_t device)
+void transpose_parallel(Graph* graph, Graph* transposed, size_t device, unsigned long *time)
 {
 
     build_kernel(device);
@@ -104,15 +107,6 @@ unsigned long transpose_parallel(Graph* graph, Graph* transposed, size_t device)
 
     err = clReleaseMemObject(inEdges_buffer);
 
-
-    unsigned long total =  time_ms() - start_time;
-
-    /*for(int i = 0; i<graph->V;i++)
-    {
-        printf("%u\t",inEdges[i]);
-    }
-    printf("\n");
-    free(inEdges);*/
 
     //Calculate new VerticeArray can be parallelized with prefix sum
     transposed->vertices[0] = 0;
@@ -173,5 +167,7 @@ unsigned long transpose_parallel(Graph* graph, Graph* transposed, size_t device)
     err = clReleaseMemObject(new_weight_buffer);
     err = clReleaseCommandQueue(command_queue);
     err = clReleaseContext(context);
-    return total;
+
+    if(time != NULL)
+        *time =  time_ms() - start_time;
 }

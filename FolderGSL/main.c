@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
     Graph* graph = readGraphFromFile(filename);
     unsigned source = (unsigned)rand()%graph->V;
 	printf("%u",graph->V);
-    if(graph->V <=2048)
+    if(graph->V <=0)
     {
         cl_float** mat = GraphToMatrix(graph);
         benchmark_floyd_warshall(mat,graph->V,graph->E);
@@ -81,10 +81,12 @@ int main(int argc, char* argv[])
 
     else
     {
-        benchmark_bfs(graph,source);
-        benchmark_dijkstra(graph,source);
+        //benchmark_bfs(graph,source);
+        //benchmark_dijkstra(graph,source);
+        //verify_sssp_parallel(graph,source);
         benchmark_sssp(graph,source);
-        benchmark_topo(graph);
+        //benchmark_transpose(graph);
+        //benchmark_topo(graph);
     }
 
     freeGraph(graph);

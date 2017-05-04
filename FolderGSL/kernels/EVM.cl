@@ -78,7 +78,7 @@ __kernel void assign_bucket(__global unsigned *input, unsigned max, unsigned min
     offset[id] = atomic_inc(&bucket_count[bucket_id]);
 }
 
-__kernel void appr_sort(__global unsigned *key, __global unsigned *key_sorted, __global unsigned *offset, __global unsigned* bucket_count, __global unsigned *bucket_index, __global unsigned *oldToNew)
+__kernel void appr_sort(__global unsigned *key, __global unsigned *key_sorted, __global unsigned *offset, __global unsigned* bucket_count, __global unsigned *bucket_index, __global unsigned *oldToNew,__global unsigned *newToOld)
 {
     size_t id = get_global_id(0);
 
@@ -89,5 +89,6 @@ __kernel void appr_sort(__global unsigned *key, __global unsigned *key_sorted, _
     off = off+count;
     key_sorted[off] = k;
     oldToNew[id] = off;
+    newToOld[off] = id;
 }
 

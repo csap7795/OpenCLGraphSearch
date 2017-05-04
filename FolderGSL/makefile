@@ -1,3 +1,4 @@
+#!/bin/bash
 # Get the location of this makefile.
 # install realpath otherwise it won't work
 ROOT_DIR := $(shell dirname "$(realpath $(lastword $(MAKEFILE_LIST)))")

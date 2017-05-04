@@ -22,7 +22,7 @@ static void build_kernel(size_t device_num)
     //printf("%s\n\n",cluGetDeviceDescription(device,device_num));
     cl_device_type device_type;
     clGetDeviceInfo(device,CL_DEVICE_TYPE,sizeof(cl_device_type),&device_type,NULL);
-    int group_num;
+    int group_num = 1;
     (device_type == CL_DEVICE_TYPE_GPU) ? (group_num = GROUP_NUM) : (group_num = 1);
 
     char* filename = "/sssp.cl";
@@ -35,7 +35,8 @@ static void build_kernel(size_t device_num)
     program = cluBuildProgramFromFile(context,device,kernel_file,tmp);
 }
 
-void sssp(Graph* graph,unsigned source,cl_float* out_cost, unsigned device_num, unsigned long *time)
+
+void sssp(Graph* graph,unsigned source,cl_float* out_cost,cl_uint* out_path, unsigned device_num, unsigned long *time, unsigned long *precalc_time)
 {
     build_kernel(device_num);
 
@@ -50,19 +51,21 @@ void sssp(Graph* graph,unsigned source,cl_float* out_cost, unsigned device_num, 
     cl_uint* numEdgesSorted = (cl_uint*) calloc(graph->V, sizeof(cl_uint));
     cl_uint* offset = (cl_uint*) calloc(graph->V,sizeof(cl_uint));
     cl_uint* oldToNew = (cl_uint*) calloc(graph->V,sizeof(cl_uint));
+    cl_uint* newToOld = (cl_uint*) calloc(graph->V,sizeof(cl_uint));
     cl_uint messageBuffersize;
     cl_int err;
 
     //Preprocess Indices and initialize VertexBuffer, Calculate the number of incoming Edges for each vertex and set the sourceVertex of each edge
-
     if(device_type == CL_DEVICE_TYPE_GPU)
-        preprocessing_parallel(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,offset,&messageBuffersize,1);
+        preprocessing_parallel(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,&messageBuffersize,0);
     else
-        preprocessing_parallel_cpu(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,offset,&messageBuffersize,1);
+        preprocessing_parallel_cpu(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,&messageBuffersize,0);
 
     //unsigned long total_time = time_ms() - start_time;
     //printf("Time for Preprocessing : %lu\n",total_time);
 
+    if(precalc_time != NULL)
+        *precalc_time = time_ms()-start_time;
 
     cl_float* messageBuffer = (cl_float*) malloc(messageBuffersize * sizeof(cl_float));
     for(int i = 0; i<messageBuffersize;i++){
@@ -79,6 +82,9 @@ void sssp(Graph* graph,unsigned source,cl_float* out_cost, unsigned device_num, 
     cl_mem message_buffer= clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_float) * messageBuffersize, NULL,&err);
     CLU_ERRCHECK(err,"Failed creating message_buffer");
 
+    cl_mem message_buffer_path= clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(cl_uint) * messageBuffersize, NULL,&err);
+    CLU_ERRCHECK(err,"Failed creating message_buffer_path");
+
     cl_mem messageWriteIndex_buffer= clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(cl_uint) * graph->E, NULL,&err);
     CLU_ERRCHECK(err,"Failed creating messageWriteIndex_buffer");
 
@@ -90,6 +96,9 @@ void sssp(Graph* graph,unsigned source,cl_float* out_cost, unsigned device_num, 
 
     cl_mem cost_buffer = clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_float) * (graph->V), NULL, &err);
     CLU_ERRCHECK(err,"Failed creating cost_buffer");
+
+    cl_mem path_buffer = clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(cl_uint) * (graph->V), NULL, &err);
+    CLU_ERRCHECK(err,"Failed creating path_buffer");
 
     cl_mem  active_buffer = clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_bool) * (graph->V), NULL, &err);
     CLU_ERRCHECK(err,"Failed creating active_buffer");
@@ -123,9 +132,9 @@ void sssp(Graph* graph,unsigned source,cl_float* out_cost, unsigned device_num, 
     CLU_ERRCHECK(err,"Failed to create vertexCompute kernel from program");
 
     //Set KernelArguments
-    cluSetKernelArguments(init_kernel,3,sizeof(cl_mem),(void*)&cost_buffer,sizeof(cl_mem),(void*)&active_buffer, sizeof(unsigned), &oldToNew[source]);
-    cluSetKernelArguments(edge_kernel,7,sizeof(cl_mem),(void*)&edge_buffer,sizeof(cl_mem),(void*)&sourceVertices_buffer,sizeof(cl_mem),(void*)&messageWriteIndex_buffer,sizeof(cl_mem),(void*)&message_buffer,sizeof(cl_mem),(void*)&cost_buffer,sizeof(cl_mem),(void*)&weight_buffer,sizeof(cl_mem),(void*)&active_buffer,sizeof(cl_mem));
-    cluSetKernelArguments(vertex_kernel,6,sizeof(cl_mem),(void*)&offset_buffer,sizeof(cl_mem),(void*)&message_buffer,sizeof(cl_mem),(void*)&numEdges_buffer,sizeof(cl_mem),(void*)&cost_buffer,sizeof(cl_mem),(void*)&active_buffer,sizeof(cl_mem),(void*)&finished_flag);
+    cluSetKernelArguments(init_kernel,4,sizeof(cl_mem),(void*)&cost_buffer,sizeof(cl_mem),(void*)&path_buffer,sizeof(cl_mem),(void*)&active_buffer, sizeof(unsigned), &oldToNew[source]);
+    cluSetKernelArguments(edge_kernel,8,sizeof(cl_mem),(void*)&edge_buffer,sizeof(cl_mem),(void*)&sourceVertices_buffer,sizeof(cl_mem),(void*)&messageWriteIndex_buffer,sizeof(cl_mem),(void*)&message_buffer,sizeof(cl_mem),(void*)&message_buffer_path,sizeof(cl_mem),(void*)&cost_buffer,sizeof(cl_mem),(void*)&weight_buffer,sizeof(cl_mem),(void*)&active_buffer,sizeof(cl_mem));
+    cluSetKernelArguments(vertex_kernel,8,sizeof(cl_mem),(void*)&offset_buffer,sizeof(cl_mem),(void*)&message_buffer,sizeof(cl_mem),(void*)&message_buffer_path,sizeof(cl_mem),(void*)&numEdges_buffer,sizeof(cl_mem),(void*)&cost_buffer,sizeof(cl_mem),(void*)&path_buffer,sizeof(cl_mem),(void*)&active_buffer,sizeof(cl_mem),(void*)&finished_flag);
 
     // Execute the OpenCL kernel for initializing Buffers
     size_t globalEdgeSize = graph->E;
@@ -134,6 +143,7 @@ void sssp(Graph* graph,unsigned source,cl_float* out_cost, unsigned device_num, 
 
     // start looping both main kernels
     bool finished;
+
     while(true)
     {
         CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, edge_kernel, 1, NULL, &globalEdgeSize, NULL, 0, NULL, NULL), "Failed to enqueue Dijkstra1 kernel");
@@ -150,16 +160,20 @@ void sssp(Graph* graph,unsigned source,cl_float* out_cost, unsigned device_num, 
 
     //printf("Time for Calculating edgeVerticeMessage : %lu\n",total_time);
 
-    float* cost_parallel = (float*) malloc(sizeof(float) * graph->V);
-    err = clEnqueueReadBuffer(command_queue,cost_buffer,CL_TRUE,0,sizeof(cl_float) * graph->V,cost_parallel,0,NULL,NULL);
+    cl_float* cost_parallel = (cl_float*) malloc(sizeof(cl_float) * graph->V);
+    cl_uint* path_parallel = (cl_uint*) malloc(sizeof(cl_uint) * graph->V);
+    err = clEnqueueReadBuffer(command_queue,cost_buffer,CL_FALSE,0,sizeof(cl_float) * graph->V,cost_parallel,0,NULL,NULL);
+    err = clEnqueueReadBuffer(command_queue,path_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,path_parallel,0,NULL,NULL);
 
     for(int i = 0; i<graph->V;i++)
     {
         out_cost[i] = cost_parallel[oldToNew[i]];
+        out_path[i] = newToOld[path_parallel[oldToNew[i]]];
     }
 
 
     free(cost_parallel);
+    free(path_parallel);
 
     //Clean up
     free(sourceVerticesSorted);
@@ -177,10 +191,12 @@ void sssp(Graph* graph,unsigned source,cl_float* out_cost, unsigned device_num, 
     err = clReleaseMemObject(edge_buffer);
     err = clReleaseMemObject(weight_buffer);
     err = clReleaseMemObject(message_buffer);
+    err = clReleaseMemObject(message_buffer_path);
     err = clReleaseMemObject(messageWriteIndex_buffer);
     err = clReleaseMemObject(numEdges_buffer);
     err = clReleaseMemObject(sourceVertices_buffer);
     err = clReleaseMemObject(cost_buffer);
+    err = clReleaseMemObject(path_buffer);
     err = clReleaseMemObject(active_buffer);
     err = clReleaseMemObject(offset_buffer);
     err = clReleaseMemObject(finished_flag);
@@ -190,4 +206,3 @@ void sssp(Graph* graph,unsigned source,cl_float* out_cost, unsigned device_num, 
     if(time != NULL)
         *time = time_ms()-start_time;
 }
-

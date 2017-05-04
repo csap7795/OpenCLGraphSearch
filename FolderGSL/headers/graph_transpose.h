@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 unsigned long transpose_serial(Graph* graph, Graph* transposed);
-unsigned long transpose_parallel(Graph* graph, Graph* transposed, size_t device);
+void transpose_parallel(Graph* graph, Graph* transposed, size_t device,unsigned long *time);
 
 
 #endif // GRAPH_TRANSPOSE_H_INCLUDED
