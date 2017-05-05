@@ -32,6 +32,10 @@ Graph* createNegativeCycleGraph(unsigned vertices);
 Graph* getEmptyGraph(unsigned vertices, unsigned edges);
 Graph* getTreeGraphWeight(int level, int edges);
 Graph* getTreeGraph(int level, int edges);
+Graph* getRandomTreeGraph(int level, int edges, unsigned edgeperVertex);
+
+void assignRandomNumbersNotTheSame(cl_uint *edges, cl_uint length, unsigned start_node, unsigned num_edges);
+
 Graph* getRandomGraph (unsigned verticeCount, unsigned edges_per_vertex);
 unsigned getNormalDistributedValues(unsigned range);
 void freeGraph(Graph* graph);

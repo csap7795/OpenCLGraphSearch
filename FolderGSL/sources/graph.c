@@ -6,6 +6,7 @@
 #include <math.h>
 #include <float.h>
 #include <queue.h>
+#include <alloca.h>
 
 void addEdges(Graph* graph, cl_uint* src, cl_uint* dest, unsigned length, cl_float* weight)
 {
@@ -322,6 +323,100 @@ Graph* getTreeGraphWeight(int level, int edges)
     graph->vertices[graph->V] = graph->E;
 
     return graph;
+}
+
+Graph* getRandomTreeGraph(int level, int edges, unsigned edgeperVertex)
+{
+    //initialize random generator
+    srand(time(NULL));
+
+    //allocate Graph Data
+    Graph* graph = (Graph*)malloc(sizeof(Graph));
+    graph->V = 0;
+
+    // Calculate number of vertices
+    for(int i = 0 ; i<level;i++)
+    {
+        graph->V += (unsigned)pow((float)edges,i);
+    }
+
+    graph->vertices = (cl_uint*) malloc(sizeof(cl_uint)*(graph->V+1));
+
+    //set first two values for start node
+    graph->vertices[0] = 0;
+    graph->vertices[1] = edges;
+
+    graph->E = edges;
+
+    cl_uint start_node = 0;
+    for(int i = 1; i<=level-1;i++)
+    {
+        start_node++;
+        unsigned level_nodes = (unsigned)pow((float)edges,i);
+        unsigned end_node = level_nodes + start_node -1;
+
+        for(int j = start_node;j<=end_node;j++)
+        {
+            unsigned num_edges;
+            if(i == level-1)
+                num_edges = 0;
+            else
+            {
+                if(pow((float)edges,i+1)<edgeperVertex)
+                    num_edges = rand()%(unsigned)pow((float)edges,i+1);
+                else
+                    num_edges = rand()%edgeperVertex;
+            }
+
+            graph->vertices[j+1] = graph->vertices[j]+num_edges;
+            graph->E += num_edges;
+        }
+        start_node = end_node;
+    }
+
+    //allocate data vor edges
+    graph->edges = (cl_uint*) malloc(sizeof(cl_uint)*(graph->E));
+    // set first "edges" edges
+    for(int i = 0; i<edges;i++)
+        graph->edges[i] = i+1;
+
+    start_node = 0;
+    for(int i = 1; i<level-1;i++)
+    {
+        start_node++;
+        unsigned level_nodes = (unsigned)pow((float)edges,i);
+        unsigned end_node = level_nodes + start_node -1;
+
+        for(int j = start_node;j<=end_node;j++)
+        {
+            cl_uint length = graph->vertices[j+1] - graph->vertices[j];
+            assignRandomNumbersNotTheSame(&graph->edges[graph->vertices[j]],length,end_node+1,(unsigned)pow((float)edges,i+1));
+        }
+        start_node = end_node;
+    }
+
+    graph->weight = NULL;
+    return graph;
+
+}
+
+void assignRandomNumbersNotTheSame(cl_uint *edges, cl_uint length, unsigned start_node, unsigned num_edges)
+{
+    unsigned* neighbors = (unsigned*)alloca(sizeof(unsigned)*length);
+    for(int i = 0; i<length;i++)
+    {
+        unsigned next_num = (rand()%num_edges) + start_node;
+        int j = 0;
+        while(j<i)
+        {
+            if(next_num == neighbors[j])
+                next_num + 1 < (start_node+num_edges) ? (next_num++) : (next_num = start_node);
+
+            j++;
+        }
+        neighbors[i] = next_num;
+        edges[i] = next_num;
+    }
 }
 
 Graph* getTreeGraph(int level, int edges)
