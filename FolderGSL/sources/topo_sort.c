@@ -6,7 +6,7 @@
 #include <libgen.h>
 
 #define GROUP_NUM 32
-#define PREPROCESS_ENABLE 1
+#define PREPROCESS_ENABLE 0
 
 static cl_program program;
 static cl_context context;
@@ -50,7 +50,7 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
     if(PREPROCESS_ENABLE)
         preprocessing_parallel(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,&messageBuffersize,1);
     else
-        preprocessing(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,offset,&messageBuffersize);
+        topo_sort_preprocess(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,offset,&messageBuffersize);
 
     cl_bool *messageBuffer = (cl_bool*)calloc(messageBuffersize, sizeof(cl_bool));
 
@@ -131,16 +131,21 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
 
     //printf("Time for Calculating edgeVerticeMessage : %lu\n",total_time);
 
-    cl_uint* order_parallel = (cl_uint*) malloc(sizeof(cl_uint) * graph->V);
-    err = clEnqueueReadBuffer(command_queue,order_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,order_parallel,0,NULL,NULL);
-
-    // Abgleich auf Unsigned max um zu checken ob Topologische Ordnung Existiert.
-    for(int i = 0; i<graph->V;i++)
+    if(PREPROCESS_ENABLE)
     {
-        out_order_parallel[i] = order_parallel[oldToNew[i]];
+        cl_uint* order_parallel = (cl_uint*) malloc(sizeof(cl_uint) * graph->V);
+        err = clEnqueueReadBuffer(command_queue,order_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,order_parallel,0,NULL,NULL);
+
+        // Abgleich auf Unsigned max um zu checken ob Topologische Ordnung Existiert.
+        for(int i = 0; i<graph->V;i++)
+        {
+            out_order_parallel[i] = order_parallel[oldToNew[i]];
+        }
+        free(order_parallel);
     }
 
-
+    else
+        err = clEnqueueReadBuffer(command_queue,order_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,out_order_parallel,0,NULL,NULL);
 
     //Clean up
     free(sourceVerticesSorted);
@@ -149,7 +154,6 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
     free(offset);
     free(oldToNew);
     free(newToOld);
-    free(order_parallel);
 
     err = clFlush(command_queue);
     err |= clFinish(command_queue);
@@ -170,6 +174,37 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
 
     if(time != NULL)
         *time = time_ms()-start_time;
+}
+
+void topo_sort_preprocess(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVertices, cl_uint* inEdges, cl_uint* offset, cl_uint *messageBufferSize)
+{
+        *messageBufferSize = graph->E;
+
+        /* Fill sourceVertice array and numEdges which is the number of every incoming edges for every vertice*/
+        for(int i = 0; i<graph->V;i++)
+        {
+            for(int j = graph->vertices[i]; j<graph->vertices[i+1];j++)
+            {
+                sourceVertices[j] = i;
+                inEdges[graph->edges[j]]++;
+            }
+        }
+
+        //Calculate offsets, scan over inEdges
+        offset[0] = 0;
+        for(int i=0; i<graph->V-1;i++)
+            offset[i+1] = offset[i] + inEdges[i];
+
+
+        // Calculate the Write Indices for the Edges
+        unsigned* helper = (unsigned*)calloc(graph->V,sizeof(unsigned));
+        for(int i = 0; i<graph->E;i++)
+        {
+            cl_uint dest = graph->edges[i];
+            messageWriteIndex[i] = offset[dest] + helper[dest];
+            helper[dest]++;
+        }
+        free(helper);
 }
 
 
