@@ -2,7 +2,6 @@
 #include <cl_utils.h>
 #include <CL/cl.h>
 #include <matrix.h>
-#include <time_ms.h>
 #include "test_floyd_warshall.h"
 #include "benchmark_utils.h"
 

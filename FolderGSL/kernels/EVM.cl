@@ -1,3 +1,13 @@
+void expand_SIMD(unsigned W_OFF,unsigned id,int cnt,local unsigned* neighbors,__global unsigned* vertices, __global volatile unsigned* numEdges, __global unsigned* sourceVertices)
+{
+    for(int IDX = W_OFF;IDX<cnt;IDX+=GROUP_NUM)
+    {
+            unsigned dest = neighbors[IDX];
+            atomic_inc(&numEdges[dest]);
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+}
+
 void memcpy_SIMD (int W_OFF, int cnt, __local unsigned* dest, __global unsigned* src)
 {
     for(int IDX = W_OFF; IDX<cnt; IDX+=GROUP_NUM)
@@ -11,12 +21,13 @@ void memcpy_SIMD (int W_OFF, int cnt, __local unsigned* dest, __global unsigned*
 
 __kernel void calculateWriteIndices(__global unsigned *edges, __global unsigned *oldToNew, __global unsigned *offset, __global volatile unsigned *helper, __global unsigned *messageWriteIndex)
 {
+    barrier(CLK_LOCAL_MEM_FENCE);
     size_t id = get_global_id(0);
     unsigned old_source = edges[id];
     unsigned new_source = oldToNew[old_source];
     unsigned group_id = new_source/GROUP_NUM;
     unsigned inner_id = new_source%GROUP_NUM;
-    messageWriteIndex[id] = offset[group_id] + inner_id + (atomic_inc(&helper[old_source])*GROUP_NUM);
+    messageWriteIndex[id] = offset[group_id] + inner_id + atomic_inc(&helper[old_source])*GROUP_NUM;
 
 }
 
@@ -27,19 +38,64 @@ __kernel void sort_source_vertex(__global unsigned *sourceVertices, __global uns
     sorted[id] = oldToNew[source];
 }
 
-__kernel void preprocess(__global unsigned *vertices,__global unsigned *edges,__global unsigned *sourceVertices, __global volatile unsigned *numEdges)
+__kernel void inEdgesAndSourceVerticeCalculation(__global unsigned *vertices,__global unsigned *edges,__global unsigned *sourceVertices, __global volatile unsigned *numEdges)
 {
     size_t id = get_global_id(0);
     unsigned offset = vertices[id];
     unsigned num_neighbors = vertices[id+1] - offset;
 
-    //offset + i belongs to the unique edge id
     for(int i = 0; i<num_neighbors;i++)
     {
+        //offset + i belongs to the unique edge id
         unsigned dest = edges[offset+i];
         atomic_inc(&numEdges[dest]);
+        //numEdges[dest]++;
         sourceVertices[offset+i] = id;
     }
+
+    // Tried improving kernel with working on local memory, didn't work anyhow
+    /*    size_t id = get_global_id(0);
+        size_t lid = get_local_id(0);
+        size_t gid = get_group_id(0);
+    if(id<length)
+    {
+        for(int j = 0; j<GROUP_NUM;j++)
+        {
+                barrier(CLK_LOCAL_MEM_FENCE);
+                unsigned source_vertex = gid * GROUP_NUM +j;
+                unsigned offset = vertices[source_vertex];
+                unsigned num_neighbors = vertices[source_vertex+1] - offset;
+                for(int i = lid; i<num_neighbors;i+=GROUP_NUM)
+                {
+                    barrier(CLK_LOCAL_MEM_FENCE);
+                    unsigned dest = edges[offset+i];
+                    numEdges[dest]++;
+                    //atomic_inc(&numEdges[dest]);
+                    sourceVertices[offset+i] = source_vertex;
+                }
+        }
+
+    }
+    // Another try with working on local_memory, cannot work as you never now how much space you need for the neighbors
+    /* size_t id = get_global_id(0);
+    size_t lid = id%GROUP_NUM;
+    size_t gid = id/GROUP_NUM;
+
+    unsigned group_offset = vertices[gid*GROUP_NUM];
+
+    int length = vertices[(gid+1)*GROUP_NUM] - group_offset;
+
+    __local unsigned neighbors[GROUP_NUM*500];
+
+    memcpy_SIMD(lid,length,neighbors,&edges[group_offset]);
+    expand_SIMD(lid,id,length,neighbors,vertices, numEdges,sourceVertices);
+     unsigned offset = vertices[id];
+    unsigned num_neighbors = vertices[id+1] - offset;
+    //offset + i belongs to the unique edge id
+    for(int i = 0; i<num_neighbors;i++)
+        sourceVertices[offset+i] = id;*/
+
+
 
 }
 

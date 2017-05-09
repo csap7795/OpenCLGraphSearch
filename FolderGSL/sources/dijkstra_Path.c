@@ -1,7 +1,7 @@
 #include <dikstra_path.h>
 #include <stdio.h>
 #include <cl_utils.h>
-#include <time_ms.h>
+#include <benchmark_utils.h>
 #include <edge_vertice_message.h>
 #include <float.h>
 #include <unistd.h>
@@ -26,8 +26,10 @@ static void build_kernel(size_t device_num)
 
 void dijkstra_path(Graph* graph,unsigned source,cl_float* out_cost, cl_uint* out_path, unsigned device_num, unsigned long *time)
 {
+    // Build the kernel
     build_kernel(device_num);
 
+    // Start measuring
     unsigned long start_time = time_ms();
 
   	//Allocate Data
@@ -37,14 +39,18 @@ void dijkstra_path(Graph* graph,unsigned source,cl_float* out_cost, cl_uint* out
     cl_uint* offset = (cl_uint*) calloc(graph->V,sizeof(cl_uint));
     cl_int err;
 
+    // Preprocess the data,i.e. calculate the Indices where Edges write to in the messageBuffer,
+    // the Source Vertex of each edge and the number of incoming edges for each Vertex
     dijkstra_path_preprocess(graph,messageWriteIndex,sourceVertices,inEdges,offset);
 
+    //Fill messageBuffer with CL_FLT_MAX
     cl_float* messageBuffer_cost = (cl_float*) malloc(graph->E * sizeof(cl_float));
     cl_uint* messageBuffer_path = (cl_uint*) malloc(graph->E * sizeof(cl_uint));
     for(int i = 0; i<graph->E;i++){
         messageBuffer_cost[i] = CL_FLT_MAX;
     }
 
+    //Create the buffers
     cl_mem edge_buffer = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(cl_uint) * graph->E, NULL, &err);
     CLU_ERRCHECK(err,"Failed creating edgebuffer");
 
@@ -84,18 +90,18 @@ void dijkstra_path(Graph* graph,unsigned source,cl_float* out_cost, cl_uint* out
 
     // Copy Graph Data to their respective memory buffers
     err = clEnqueueWriteBuffer(command_queue, edge_buffer, CL_FALSE, 0, graph->E * sizeof(cl_uint), graph->edges , 0, NULL, NULL);
-    err = clEnqueueWriteBuffer(command_queue, weight_buffer, CL_FALSE,0, graph->E * sizeof(cl_uint), graph->weight,0, NULL, NULL);
+    err |= clEnqueueWriteBuffer(command_queue, weight_buffer, CL_FALSE,0, graph->E * sizeof(cl_uint), graph->weight,0, NULL, NULL);
 
-    err = clEnqueueWriteBuffer(command_queue, message_buffer_cost, CL_FALSE, 0, graph->E * sizeof(cl_float), messageBuffer_cost , 0, NULL, NULL);
-    //err = clEnqueueWriteBuffer(command_queue, message_buffer_path, CL_FALSE, 0, graph->E * sizeof(cl_uint), messageBuffer_path , 0, NULL, NULL);
-    err = clEnqueueWriteBuffer(command_queue, messageWriteIndex_buffer, CL_FALSE, 0, graph->E * sizeof(cl_uint), messageWriteIndex , 0, NULL, NULL);
-    err = clEnqueueWriteBuffer(command_queue, sourceVertices_buffer, CL_FALSE, 0, graph->E * sizeof(cl_uint), sourceVertices , 0, NULL, NULL);
+    err |= clEnqueueWriteBuffer(command_queue, message_buffer_cost, CL_FALSE, 0, graph->E * sizeof(cl_float), messageBuffer_cost , 0, NULL, NULL);
+    err |= clEnqueueWriteBuffer(command_queue, messageWriteIndex_buffer, CL_FALSE, 0, graph->E * sizeof(cl_uint), messageWriteIndex , 0, NULL, NULL);
+    err |= clEnqueueWriteBuffer(command_queue, sourceVertices_buffer, CL_FALSE, 0, graph->E * sizeof(cl_uint), sourceVertices , 0, NULL, NULL);
 
-    err = clEnqueueWriteBuffer(command_queue, inEdges_buffer, CL_FALSE, 0, graph->V * sizeof(cl_uint), inEdges , 0, NULL, NULL);
-    err = clEnqueueWriteBuffer(command_queue, offset_buffer, CL_TRUE, 0, graph->V * sizeof(cl_uint), offset , 0, NULL, NULL);
+    err |= clEnqueueWriteBuffer(command_queue, inEdges_buffer, CL_FALSE, 0, graph->V * sizeof(cl_uint), inEdges , 0, NULL, NULL);
+    err |= clEnqueueWriteBuffer(command_queue, offset_buffer, CL_TRUE, 0, graph->V * sizeof(cl_uint), offset , 0, NULL, NULL);
 
     CLU_ERRCHECK(err,"Failed copying graph data to buffers");
 
+    // Create the kernels
     cl_kernel init_kernel = clCreateKernel(program,"initialize",&err);
     CLU_ERRCHECK(err,"Failed to create initializing kernel from program");
 
@@ -116,12 +122,28 @@ void dijkstra_path(Graph* graph,unsigned source,cl_float* out_cost, cl_uint* out
     CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, init_kernel, 1, NULL, &globalVertexSize, NULL, 0, NULL, NULL),"Error executing InitializeKernel");
 
     // start looping both main kernels
-    bool finished;
+    bool finished;cl_event edge_kernel_event;
+    cl_event vertex_kernel_event;
+    cl_ulong time_start_edge, time_end_edge;
+    cl_ulong time_start_vertex, time_end_vertex;
+    double total_time_edge = 0;
+    double total_time_vertex = 0;
+
     while(true)
     {
-        CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, edge_kernel, 1, NULL, &globalEdgeSize, NULL, 0, NULL, NULL), "Failed to enqueue Dijkstra1 kernel");
-        CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, vertex_kernel, 1, NULL, &globalVertexSize, NULL, 0, NULL, NULL), "Failed to enqueue Dijkstra2 kernel");
+        CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, edge_kernel, 1, NULL, &globalEdgeSize, NULL, 0, NULL, &edge_kernel_event), "Failed to enqueue Dijkstra1 kernel");
+        CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, vertex_kernel, 1, NULL, &globalVertexSize, NULL, 0, NULL, &vertex_kernel_event), "Failed to enqueue Dijkstra2 kernel");
         err = clEnqueueReadBuffer(command_queue,finished_flag,CL_TRUE,0,sizeof(cl_bool),&finished,0,NULL,NULL);
+
+        clGetEventProfilingInfo(edge_kernel_event, CL_PROFILING_COMMAND_START, sizeof(time_start_edge), &time_start_edge, NULL);
+        clGetEventProfilingInfo(edge_kernel_event, CL_PROFILING_COMMAND_END, sizeof(time_end_edge), &time_end_edge, NULL);
+
+        clGetEventProfilingInfo(vertex_kernel_event, CL_PROFILING_COMMAND_START, sizeof(time_start_vertex), &time_start_vertex, NULL);
+        clGetEventProfilingInfo(vertex_kernel_event, CL_PROFILING_COMMAND_END, sizeof(time_end_vertex), &time_end_vertex, NULL);
+
+        total_time_edge += time_end_edge - time_start_edge;
+        total_time_vertex += time_end_vertex - time_start_vertex;
+
 
         if(finished)
             break;
@@ -130,11 +152,14 @@ void dijkstra_path(Graph* graph,unsigned source,cl_float* out_cost, cl_uint* out
         err = clEnqueueWriteBuffer(command_queue, finished_flag, CL_TRUE, 0, sizeof(cl_bool), &finished , 0, NULL, NULL);
 
     }
+    printf("Function: dijkstra path kernel edge\t%.2f ms\n",total_time_edge/1000000);
+    printf("Function: ijkstra path kernel vertex\t%.2f ms\n",total_time_vertex/1000000);
 
+    // Read out the results
     err = clEnqueueReadBuffer(command_queue,cost_buffer,CL_FALSE,0,sizeof(cl_float) * graph->V,out_cost,0,NULL,NULL);
     err = clEnqueueReadBuffer(command_queue,path_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,out_path,0,NULL,NULL);
 
-    //Clean up
+    //Free allocated Data
     free(sourceVertices);
     free(messageBuffer_cost);
     free(messageBuffer_path);
@@ -142,6 +167,7 @@ void dijkstra_path(Graph* graph,unsigned source,cl_float* out_cost, cl_uint* out
     free(offset);
     free(inEdges);
 
+    // Finalize OpenCL
     err = clFlush(command_queue);
     err |= clFinish(command_queue);
     err |= clReleaseKernel(init_kernel);
@@ -163,6 +189,9 @@ void dijkstra_path(Graph* graph,unsigned source,cl_float* out_cost, cl_uint* out
     err |= clReleaseCommandQueue(command_queue);
     err |= clReleaseContext(context);
 
+    CLU_ERRCHECK(err, "Failed during finalizing OpenCL in function dijkstra_path()");
+
+    // Save time if requested
     if(time != NULL)
         *time = time_ms()-start_time;
 

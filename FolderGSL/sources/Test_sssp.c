@@ -4,12 +4,11 @@
 #include <CL/cl.h>
 #include <graph.h>
 #include <time.h>
-#include <time_ms.h>
 #include <stdbool.h>
 #include <benchmark_utils.h>
 #include <dikstra_path.h>
 
-#define REPEATS 5
+#define REPEATS 1
 #define CSVFILENAME_SSSP "sssp.csv"
 #define CSVFILENAME_PRECALC "pre_sssp.csv"
 #define CSVFILENAME_DIJKSTRA "dijkstra_path.csv"
@@ -40,7 +39,7 @@ void benchmark_sssp(Graph* graph, unsigned source)
 
         for(int i = 0; i<REPEATS;i++)
         {
-           measure_time_sssp(graph,source,device,&total_time,&precalc_time);
+           //measure_time_sssp(graph,source,device,&total_time,&precalc_time);
            time_sssp += total_time;
            time_pre_sssp += precalc_time;
            time_dijkstra += measure_time_dijkstra_path(graph,source,device);

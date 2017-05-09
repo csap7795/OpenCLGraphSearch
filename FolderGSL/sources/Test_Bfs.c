@@ -4,7 +4,6 @@
 #include <CL/cl.h>
 #include <graph.h>
 #include <time.h>
-#include <time_ms.h>
 #include <stdbool.h>
 #include <benchmark_utils.h>
 
@@ -27,13 +26,13 @@ void benchmark_bfs(Graph* graph, unsigned source)
     initCsv(csv_file_workgroup,num_devices);
     initCsv(csv_file_baseline,num_devices);
 
-    for(unsigned device = 0; device < num_devices;device++)
+    for(unsigned device = 1; device < num_devices;device++)
     {
         long unsigned time_baseline = 0;
         long unsigned time_workgroup = 0;
         for(int i = 0; i<REPEATS;i++)
         {
-           //time_baseline += measure_time_bfs_baseline(graph,source,device);
+           time_baseline += measure_time_bfs_baseline(graph,source,device);
            time_workgroup += measure_time_bfs_workgroup(graph,source,device);
         }
 

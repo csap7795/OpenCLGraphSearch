@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <CL/cl.h>
 #include <cl_utils.h>
-#include <time_ms.h>
+#include <benchmark_utils.h>
 #include <unistd.h>
 #include <libgen.h>
 

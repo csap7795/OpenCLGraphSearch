@@ -21,4 +21,7 @@ void preprocessing_parallel_cpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint*
 
 void sortSourceVertices(Graph* graph, cl_uint* sourceVertices, cl_uint* oldToNew,cl_uint* sourceVerticesSorted);
 
+void parallelExecutionofWriteIndices(Graph* graph, cl_uint* oldToNew, cl_uint* offset, cl_uint* messageWriteIndex, size_t buckets, cl_uint messageBufferSize);
+void serialCalculationofWriteIndices(Graph* graph, cl_uint* oldToNew, cl_uint* offset, cl_uint* messageWriteIndex);
+
 #endif // EDGE_VERTICE_MESSAGE_H_INCLUDED

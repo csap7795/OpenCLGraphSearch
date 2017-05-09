@@ -1,4 +1,4 @@
-#include "dijkstra_parallel.h"
+#include <dijkstra_parallel.h>
 #include <stdio.h>
 #include <CL/cl.h>
 #include <stdbool.h>
@@ -6,7 +6,7 @@
 #include <float.h>
 #include <dijkstra_serial.h>
 #include <cl_utils.h>
-#include <time_ms.h>
+#include <benchmark_utils.h>
 #include <unistd.h>
 #include <libgen.h>
 
@@ -71,9 +71,9 @@ void dijkstra_parallel(Graph* graph, unsigned source, unsigned device_num, cl_fl
 
     // Copy Graph Data to their respective memory buffers
     err = clEnqueueWriteBuffer(command_queue, vertice_buffer, CL_FALSE, 0, graph->V * sizeof(cl_uint), graph->vertices , 0, NULL, NULL);
-    err = clEnqueueWriteBuffer(command_queue, vertice_buffer, CL_FALSE, graph->V * sizeof(cl_uint), sizeof(cl_uint), &graph->E , 0, NULL, NULL);
-    err = clEnqueueWriteBuffer(command_queue, edge_buffer, CL_FALSE, 0, graph->E * sizeof(cl_uint), graph->edges , 0, NULL, NULL);
-    err = clEnqueueWriteBuffer(command_queue, weight_buffer, CL_TRUE,0, graph->E * sizeof(cl_uint), graph->weight,0, NULL, NULL);
+    err |= clEnqueueWriteBuffer(command_queue, vertice_buffer, CL_FALSE, graph->V * sizeof(cl_uint), sizeof(cl_uint), &graph->E , 0, NULL, NULL);
+    err |= clEnqueueWriteBuffer(command_queue, edge_buffer, CL_FALSE, 0, graph->E * sizeof(cl_uint), graph->edges , 0, NULL, NULL);
+    err |= clEnqueueWriteBuffer(command_queue, weight_buffer, CL_TRUE,0, graph->E * sizeof(cl_uint), graph->weight,0, NULL, NULL);
     CLU_ERRCHECK(err,"Failed copying graph data to buffers");
 
     cl_kernel init_kernel = clCreateKernel(program,"initializeBuffers",&err);

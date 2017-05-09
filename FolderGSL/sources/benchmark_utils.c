@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <sys/time.h>
 
 void generate_path_name(const char* filename, char* pathname)
 {
@@ -96,4 +97,11 @@ bool cl_float_arr_equal(cl_float* arr1, cl_float* arr2, unsigned length)
             return false;
 
     return true;
+}
+
+unsigned long time_ms()
+{
+  struct timeval tv;
+  gettimeofday(&tv, 0);
+  return (unsigned long)tv.tv_sec*1000ul + (unsigned long)tv.tv_usec/1000ul;
 }

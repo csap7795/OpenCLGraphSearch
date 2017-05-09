@@ -4,7 +4,6 @@
 #include <CL/cl.h>
 #include <graph.h>
 #include <time.h>
-#include <time_ms.h>
 #include <stdbool.h>
 #include <dijkstra_parallel.h>
 #include <benchmark_utils.h>
@@ -163,7 +162,6 @@ void bellman_ford_serial(Graph* graph,cl_float* out_cost, cl_uint* out_path, uns
     out_cost[source] = 0.0f;
     out_path[source] = source;
 
-    unsigned long start_time = time_ms();
     for(int i = 0; i<graph->V;i++)
     {
         for(int j = 0; j<graph->V-1;j++)

@@ -4,7 +4,6 @@
 #include <CL/cl.h>
 #include <graph.h>
 #include <time.h>
-#include <time_ms.h>
 #include <stdbool.h>
 #include <benchmark_utils.h>
 

@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <libgen.h>
 #include <stdbool.h>
-#include <time_ms.h>
+#include <benchmark_utils.h>
 #include <matrix.h>
 
 #define BLOCK_SIZE 8

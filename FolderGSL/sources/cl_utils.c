@@ -54,7 +54,7 @@ cl_device_id cluInitDevice(size_t num, cl_context *out_context, cl_command_queue
 
 		// create command queue if requested
 		if(out_queue != NULL) {
-			*out_queue = clCreateCommandQueue(*out_context, device_id, 0, &err);
+			*out_queue = clCreateCommandQueue(*out_context, device_id, CL_QUEUE_PROFILING_ENABLE, &err);
 			CLU_ERRCHECK(err, "Failed to create ocl command queue");
 		}
 	}

@@ -1,4 +1,4 @@
-#include "graph.h"
+#include <graph.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -282,9 +282,9 @@ Graph* getEmptyGraph(unsigned vertices, unsigned edges)
     Graph* graph = (Graph*)malloc(sizeof(Graph));
     graph->E = edges;
     graph->V = vertices;
-    graph->edges = (cl_uint*)malloc(graph->E * sizeof(cl_uint));
-    graph->vertices = (cl_uint*)malloc((graph->V+1) * sizeof(cl_uint));
-    graph->weight = (cl_float*) malloc(graph->E * sizeof(cl_float));
+    graph->edges = (cl_uint*)calloc(graph->E,sizeof(cl_uint));
+    graph->vertices = (cl_uint*)calloc((graph->V+1),sizeof(cl_uint));
+    graph->weight = (cl_float*) calloc(graph->E , sizeof(cl_float));
     return graph;
 }
 

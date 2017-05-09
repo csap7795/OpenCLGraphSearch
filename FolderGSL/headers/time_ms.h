@@ -71,6 +71,6 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 #endif // WIN32
 */
 
-unsigned long time_ms();
+//unsigned long time_ms();
 
 #endif // TIME_MS_H

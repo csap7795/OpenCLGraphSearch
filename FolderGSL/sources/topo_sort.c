@@ -1,12 +1,12 @@
 #include <topo_sort.h>
 #include <edge_vertice_message.h>
-#include <time_ms.h>
+#include <benchmark_utils.h>
 #include <cl_utils.h>
 #include <unistd.h>
 #include <libgen.h>
 
 #define GROUP_NUM 32
-#define PREPROCESS_ENABLE 0
+#define PREPROCESS_ENABLE 1
 
 static cl_program program;
 static cl_context context;
@@ -34,7 +34,6 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
 
     build_kernel(device_num);
 
-    unsigned long start_time = time_ms();
     //Allocate Data
     cl_uint* sourceVerticesSorted = (cl_uint*)malloc(graph->E * sizeof(cl_uint));
     cl_uint* messageWriteIndex = (cl_uint*) malloc(graph->E * sizeof(cl_uint));
@@ -47,6 +46,7 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
 
     //Preprocess Indices and initialize VertexBuffer, Calculate the number of incoming Edges for each vertex and set the sourceVertex of each edge
 
+    unsigned long start_time = time_ms();
     if(PREPROCESS_ENABLE)
         preprocessing_parallel(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,&messageBuffersize,1);
     else
@@ -114,7 +114,6 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
     err = clEnqueueReadBuffer(command_queue,finished_flag,CL_TRUE,0,sizeof(cl_bool),&finished,0,NULL,NULL);
 
     // start looping both main kernels
-    start_time = time_ms();
     while(!finished)
     {
 
