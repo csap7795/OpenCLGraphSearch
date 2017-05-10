@@ -10,13 +10,13 @@
 #include <dikstra_path.h>
 
 #define CSVFILENAME_DIJKSTRA "dijkstra.csv"
-#define REPEATS 10
+#define REPEATS 100
 
 void benchmark_dijkstra(Graph* graph, unsigned source)
 {
     // Create path to the kernel file
     char csv_file_dijkstra[1024];
-    generate_path_name(CSVFILENAME_DIJKSTRA,csv_file_dijkstra);
+    generate_path_name_csv(CSVFILENAME_DIJKSTRA,csv_file_dijkstra);
     unsigned num_devices = cluCountDevices();
 
     //Create CSV File for documenting results
@@ -63,9 +63,10 @@ void verify_dijkstra_parallel(Graph* graph, unsigned source)
     {
         cl_device_id tmp = cluInitDevice(i,NULL,NULL);
         printf("%s\n",cluGetDeviceDescription(tmp,i));
+        for(int k = 0; k<REPEATS;k++){
         dijkstra_parallel(graph,source,i,out_cost_parallel,out_path_parallel,NULL,NULL,NULL);
-        printf("Parallel and serial execution produce same results? ");
-        printf("%s\n",verify_dijkstra(graph,out_cost_parallel,out_path_parallel,source) ? "TRUE" : "FALSE");
+        //printf("Parallel and serial execution produce same results? ");
+        printf("%s\n",verify_dijkstra(graph,out_cost_parallel,out_path_parallel,source) ? "" : "FALSE");}
     }
 
     free(out_cost_parallel);

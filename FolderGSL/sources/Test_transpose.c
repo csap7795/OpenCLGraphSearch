@@ -15,7 +15,7 @@ void benchmark_transpose(Graph* graph)
 {
     // Create path to the kernel file
     char csv_file_transpose[1024];
-    generate_path_name(CSVFILENAME_TOPO,csv_file_transpose);
+    generate_path_name_csv(CSVFILENAME_TOPO,csv_file_transpose);
     unsigned num_devices = cluCountDevices();
 
     //Create CSV File for documenting results

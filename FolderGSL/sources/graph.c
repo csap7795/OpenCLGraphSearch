@@ -194,6 +194,45 @@ void dfs(Graph* graph, unsigned* components, cl_uint v, unsigned c)
         dfs(graph,components,graph->edges[i],c);
     }
 }
+Graph* getSemaphoreGraph(int verticeCount)
+{
+
+    srand(time(NULL));
+    Graph* graph = (Graph*)malloc(sizeof(Graph));
+    graph->vertices = (cl_uint*) malloc(sizeof(cl_uint)*(verticeCount+1));
+
+    graph->V = verticeCount;
+    graph->E = 2*(verticeCount-2);
+    graph->edges = (cl_uint*)malloc(sizeof(cl_uint)*graph->E);
+    graph->weight = (float*)malloc(sizeof(float)*graph->E);
+
+    // FILL VERTICES
+    graph->vertices[0] = 0;
+    graph->vertices[1] = verticeCount-2;
+    for(int i = 2; i < verticeCount; i++ )
+    {
+        graph->vertices[i] = graph->vertices[i-1]+1;
+    }
+
+    // FILL EDGES and WEIGHTS ( NOTE THE AMOUNT OF EDGES WILL BE A MULTIPLE OF 2 AS THE GRAPH IS SYMETRIC
+    int i;
+    for(i = 0; i<graph->E/2;i++)
+    {
+        graph->edges[i] = i+1;
+        graph->weight[i] = (float)((double)rand()/(double)RAND_MAX);;
+    }
+    for(int j = graph->E/2;j<graph->E;j++)
+    {
+        graph->edges[j] = i+1;
+        graph->weight[j] = (float)((double)rand()/(double)RAND_MAX);;
+    }
+    //Make sure there exists a shortes path , in this case : in the middle
+    graph->weight[graph->E/4] = 0.0f;
+    graph->weight[graph->E/2+graph->E/4] = 0.0f;
+        graph->vertices[verticeCount]=graph->E;
+    return graph;
+
+}
 
 Graph* createUnconnectedGraph()
 {

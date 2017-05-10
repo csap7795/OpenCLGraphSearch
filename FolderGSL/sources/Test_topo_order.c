@@ -14,7 +14,7 @@ void benchmark_topo(Graph* graph)
 {
     // Create path to the kernel file
     char csv_file_topo[1024];
-    generate_path_name(CSVFILENAME_TOPO,csv_file_topo);
+    generate_path_name_csv(CSVFILENAME_TOPO,csv_file_topo);
     unsigned num_devices = cluCountDevices();
 
     //Create CSV File for documenting results

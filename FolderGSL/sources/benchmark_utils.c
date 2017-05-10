@@ -7,10 +7,11 @@
 #include <libgen.h>
 #include <sys/time.h>
 
-void generate_path_name(const char* filename, char* pathname)
+void generate_path_name_csv(const char* filename, char* pathname)
 {
     char cfp[1024];
     sprintf(cfp, "%s",__FILE__);
+    // As this function is folder sources, you need to call dirname a second time to get to the root folder
     sprintf(pathname,"%s%s%s",dirname(dirname(cfp)),"/Diagramms/csv_files/",filename);
 }
 
@@ -47,7 +48,7 @@ void writeToCsv(const char* filename, unsigned V, unsigned E, unsigned device_id
     char vertice_char=' ';
     char edge_char=' ';
     float vertices = (float)V;
-    if(vertices > 1000)
+    if(vertices >= 1000)
     {
         vertices /= 1000;
         vertice_char = 'k';
@@ -55,12 +56,17 @@ void writeToCsv(const char* filename, unsigned V, unsigned E, unsigned device_id
         {
             vertices/=1000;
             vertice_char = 'm';
+            if(vertices > 1000)
+            {
+                vertices/=1000;
+                vertice_char = 'b';
+            }
         }
 
     }
 
     float edges = (float)E;
-    if(edges > 1000)
+    if(edges >= 1000)
     {
         edges /= 1000;
         edge_char = 'k';
@@ -68,7 +74,13 @@ void writeToCsv(const char* filename, unsigned V, unsigned E, unsigned device_id
         {
             edges/=1000;
             edge_char = 'm';
+            if(edges > 1000)
+            {
+                edges/=1000;
+                edge_char = 'b';
+            }
         }
+
 
     }
     if(device_id == 0)

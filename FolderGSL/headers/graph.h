@@ -20,6 +20,8 @@ struct Graph
 
 typedef struct Graph Graph;
 
+Graph* getSemaphoreGraph(int verticeCount);
+
 
 void dfs(Graph* graph, unsigned* components, cl_uint v, unsigned c);
 void connectGraph(Graph* graph);

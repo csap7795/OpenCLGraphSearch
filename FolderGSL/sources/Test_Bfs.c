@@ -18,8 +18,8 @@ void benchmark_bfs(Graph* graph, unsigned source)
     // Create path to the kernel file
     char csv_file_workgroup[1024];
     char csv_file_baseline[1024];
-    generate_path_name(CSVFILENAME_BASELINE,csv_file_baseline);
-    generate_path_name(CSVFILENAME_WORKGROUP,csv_file_workgroup);
+    generate_path_name_csv(CSVFILENAME_BASELINE,csv_file_baseline);
+    generate_path_name_csv(CSVFILENAME_WORKGROUP,csv_file_workgroup);
 
     unsigned num_devices = cluCountDevices();
     //Create CSVFILES for documenting results

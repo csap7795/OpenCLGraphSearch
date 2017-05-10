@@ -8,7 +8,7 @@
 #include <benchmark_utils.h>
 #include <dikstra_path.h>
 
-#define REPEATS 1
+#define REPEATS 10
 #define CSVFILENAME_SSSP "sssp.csv"
 #define CSVFILENAME_PRECALC "pre_sssp.csv"
 #define CSVFILENAME_DIJKSTRA "dijkstra_path.csv"
@@ -19,9 +19,9 @@ void benchmark_sssp(Graph* graph, unsigned source)
     char csv_file_sssp[1024];
     char csv_file_dijkstra_path[1024];
     char csv_file_precalc[1024];
-    generate_path_name(CSVFILENAME_SSSP,csv_file_sssp);
-    generate_path_name(CSVFILENAME_PRECALC,csv_file_precalc);
-    generate_path_name(CSVFILENAME_DIJKSTRA,csv_file_dijkstra_path);
+    generate_path_name_csv(CSVFILENAME_SSSP,csv_file_sssp);
+    generate_path_name_csv(CSVFILENAME_PRECALC,csv_file_precalc);
+    generate_path_name_csv(CSVFILENAME_DIJKSTRA,csv_file_dijkstra_path);
     unsigned num_devices = cluCountDevices();
 
     //Create CSV File for documenting results
@@ -39,7 +39,7 @@ void benchmark_sssp(Graph* graph, unsigned source)
 
         for(int i = 0; i<REPEATS;i++)
         {
-           //measure_time_sssp(graph,source,device,&total_time,&precalc_time);
+           measure_time_sssp(graph,source,device,&total_time,&precalc_time);
            time_sssp += total_time;
            time_pre_sssp += precalc_time;
            time_dijkstra += measure_time_dijkstra_path(graph,source,device);

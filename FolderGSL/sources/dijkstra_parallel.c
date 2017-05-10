@@ -104,8 +104,8 @@ void dijkstra_parallel(Graph* graph, unsigned source, unsigned device_num, cl_fl
         CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, dijkstra2_kernel, 1, NULL, &globalSize, NULL, 0, NULL, NULL), "Failed to enqueue Dijkstra2 kernel");
         err = clEnqueueReadBuffer(command_queue,finished_flag,CL_TRUE,0,sizeof(cl_bool),&finished,0,NULL,NULL);
 
-        //if(finished)
-            //break;
+        if(finished)
+            break;
 
         finished = true;
         err = clEnqueueWriteBuffer(command_queue, finished_flag, CL_TRUE, 0, sizeof(cl_bool), &finished , 0, NULL, NULL);

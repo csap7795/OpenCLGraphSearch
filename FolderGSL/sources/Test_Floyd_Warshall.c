@@ -15,9 +15,9 @@ void benchmark_floyd_warshall(cl_float **mat, unsigned length, unsigned epv)
     char csv_file_fw_global[1024];
     char csv_file_fw_workgroup[1024];
 
-    generate_path_name(CSVFILENAME_FLOYD_WARSHALL_GLOBAL,csv_file_fw_global);
-    generate_path_name(CSVFILENAME_FLOYD_WARSHALL_GPU,csv_file_fw_gpu);
-    generate_path_name(CSVFILENAME_FLOYD_WARSHALL_WORKGROUP,csv_file_fw_workgroup);
+    generate_path_name_csv(CSVFILENAME_FLOYD_WARSHALL_GLOBAL,csv_file_fw_global);
+    generate_path_name_csv(CSVFILENAME_FLOYD_WARSHALL_GPU,csv_file_fw_gpu);
+    generate_path_name_csv(CSVFILENAME_FLOYD_WARSHALL_WORKGROUP,csv_file_fw_workgroup);
 
     unsigned num_devices = cluCountDevices();
 
