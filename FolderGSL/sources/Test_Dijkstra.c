@@ -10,7 +10,7 @@
 #include <dikstra_path.h>
 
 #define CSVFILENAME_DIJKSTRA "dijkstra.csv"
-#define REPEATS 100
+#define REPEATS 10
 
 void benchmark_dijkstra(Graph* graph, unsigned source)
 {
