@@ -23,11 +23,11 @@ void createGraphData(unsigned vertice_count, unsigned epv)
 {
     Graph* graph = getRandomGraph(vertice_count,epv);
     connectGraphbfs(graph);
-    char vertice_char;
-    char edge_char;
+    char vertice_char = ' ';
+    char edge_char = ' ';
 
     float vertices = (float)graph->V;
-    if(vertices > 1000)
+    if(vertices >= 1000)
     {
         vertices /= 1000;
         vertice_char = 'k';
@@ -40,7 +40,7 @@ void createGraphData(unsigned vertice_count, unsigned epv)
     }
 
     float edges = (float)graph->E;
-    if(edges > 1000)
+    if(edges >= 1000)
     {
         edges /= 1000;
         edge_char = 'k';
@@ -57,11 +57,16 @@ void createGraphData(unsigned vertice_count, unsigned epv)
     writeGraphToFile(tmp,graph);
     free(graph);
 }
-#define VERTICES 800000
+
+
 int main(int argc, char* argv[])
 {
 
-    if(argc != 2)
+    Graph* graph = getSemaphoreGraph(10000);
+    verify_dijkstra_parallel(graph,0);
+
+
+    /*if(argc != 2)
     {   printf("To few Arguments\n");
         return 0;
     }
@@ -70,7 +75,7 @@ int main(int argc, char* argv[])
 
     srand(time(NULL));
     Graph* graph = readGraphFromFile(filename);
-    unsigned source = (unsigned)rand()%graph->V;
+    unsigned source = 0;
 	printf("%u",graph->V);
     if(graph->V <=0)
     {
@@ -84,14 +89,16 @@ int main(int argc, char* argv[])
         //benchmark_bfs(graph,source);
         //benchmark_dijkstra(graph,source);
         //verify_sssp_parallel(graph,source);
-        benchmark_sssp(graph,source);
+        verify_dijkstra_parallel(graph,source);
+        //benchmark_sssp(graph,source);
         //benchmark_transpose(graph);
         //benchmark_topo(graph);
     }
 
-    freeGraph(graph);
+    freeGraph(graph);*/
 
 
     return 0;
 }
+
 
