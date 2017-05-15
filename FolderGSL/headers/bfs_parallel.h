@@ -2,7 +2,6 @@
 #define BFS_PARALLEL_H_INCLUDED
 
 #include <graph.h>
-#include <stdlib.h>
 
 // Functions to calculate the hops from a source node to all other nodes via a breadth first search.
 // out_cost and out_path are pointers for the calculated result which point to a memorysegment of size 'graph->V * sizeof(cl_uint)'
