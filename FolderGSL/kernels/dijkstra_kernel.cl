@@ -75,8 +75,8 @@ __kernel void dijkstra2(__global bool *maskArray, __global float *costArray, __g
     // Really need this?? Guess not.
     updatingCostArray[id] = costArray[id];
 }
-//Note: Unlike cl_ types in cl_platform.h, cl_bool is not guaranteed to be the same size as the bool in kernels.
-__kernel void negativeCycle(__global unsigned *vertices,__global unsigned *edges,__global float *weight, __global float *costArray,__global short *negCycle, __global bool *detected)
+
+__kernel void negativeCycle(__global unsigned *vertices,__global unsigned *edges,__global float *weight, __global float *costArray,__global short *negCycle, __global int *detected)
 {
     size_t id = get_global_id(0);
     unsigned edge_offset = vertices[id];
@@ -88,7 +88,7 @@ __kernel void negativeCycle(__global unsigned *vertices,__global unsigned *edges
         if(costArray[id] + weight[nid] < costArray[nid])
         {
             negCycle[id] = 1;
-            *detected = true;
+            *detected = 1;
         }
     }
 }
