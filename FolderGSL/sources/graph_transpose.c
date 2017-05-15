@@ -27,58 +27,62 @@ static void build_kernel(size_t device_num)
     program = cluBuildProgramFromFile(context,device,kernel_file,NULL);
 }
 
-unsigned long transpose_serial(Graph* graph, Graph* transposed)
+Graph* transpose_serial(Graph *graph, unsigned long *time)
 {
 
     unsigned long start_time = time_ms();
-    //Calculate number of InEdges
+
+    Graph* transposed = getEmptyGraph(graph->V, graph->E);
+
     unsigned *inEdges = (unsigned*) calloc(graph->V,sizeof(unsigned));
-    unsigned *outEdges = (unsigned*) calloc(graph->V,sizeof(unsigned));
+    //unsigned *outEdges = (unsigned*) calloc(graph->V,sizeof(unsigned));
     unsigned *helper = (unsigned*) calloc(graph->V,sizeof(unsigned));
 
+    //Calculate number of InEdges
     for(int i = 0; i<graph->E;i++)
     {
         inEdges[graph->edges[i]]++;
     }
 
-    unsigned long total = time_ms() - start_time;
-
     transposed->vertices[0] = 0;
-    for(int i = 1; i<graph->V;i++)
+    for(int i = 1; i<=graph->V;i++)
     {
-        outEdges[i-1] = graph->vertices[i] - graph->vertices[i-1];
+        //outEdges[i-1] = graph->vertices[i] - graph->vertices[i-1];
         transposed->vertices[i] = transposed->vertices[i-1] + inEdges[i-1];
     }
-
-    outEdges[graph->V-1] = graph->E - graph->vertices[graph->V-1];
+    //transposed->vertices[graph->V] = graph->E;
+    //outEdges[graph->V-1] = graph->E - graph->vertices[graph->V-1];
 
     for(int i = 0; i<graph->V;i++)
     {
-        for(int j = 0; j<outEdges[i]; j++)
+        for(int j = graph->vertices[i]; j<graph->vertices[i+1]; j++)
         {
-            unsigned index = graph->vertices[i] + j;
-            unsigned source = graph->edges[index];
-            float weight = graph->weight[index];
+            unsigned source = graph->edges[j];
             unsigned write_index = transposed->vertices[source] + helper[source];
             helper[source]++;
             transposed->edges[write_index] = i;
-            transposed->weight[write_index] = weight;
+            transposed->weight[write_index] = graph->weight[j];
         }
     }
 
     free(inEdges);
-    free(outEdges);
+    //free(outEdges);
     free(helper);
 
-    return total;
+    if(time != NULL)
+        *time = time_ms()-start_time;
+
+    return transposed;
 }
 
-void transpose_parallel(Graph* graph, Graph* transposed, size_t device, unsigned long *time)
+Graph* transpose_parallel(Graph* graph,size_t device, unsigned long *time)
 {
 
     build_kernel(device);
 
     unsigned long start_time = time_ms();
+
+    Graph* transposed = getEmptyGraph(graph->V, graph->E);
 
     cl_int err;
     cl_uint* inEdges = (cl_uint*) calloc(transposed->V, sizeof(cl_uint));
@@ -108,12 +112,13 @@ void transpose_parallel(Graph* graph, Graph* transposed, size_t device, unsigned
     err = clReleaseMemObject(inEdges_buffer);
 
 
-    //Calculate new VerticeArray can be parallelized with prefix sum
+    //Calculate new VerticeArray
     transposed->vertices[0] = 0;
     for(int i = 1; i<transposed->V;i++)
     {
         transposed->vertices[i] = transposed->vertices[i-1] + inEdges[i-1];
     }
+    transposed->vertices[graph->V] = graph->E;
 
     free(inEdges);
 
@@ -170,4 +175,6 @@ void transpose_parallel(Graph* graph, Graph* transposed, size_t device, unsigned
 
     if(time != NULL)
         *time =  time_ms() - start_time;
+
+    return transposed;
 }
