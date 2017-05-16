@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <float.h>
-#include <dijkstra_serial.h>
 #include <cl_utils.h>
 #include <benchmark_utils.h>
 #include <unistd.h>

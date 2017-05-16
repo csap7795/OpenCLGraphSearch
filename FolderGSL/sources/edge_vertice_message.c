@@ -5,7 +5,6 @@
 #include <float.h>
 #include <cl_utils.h>
 #include <benchmark_utils.h>
-#include <dijkstra_serial.h>
 #include <limits.h>
 #include <unistd.h>
 #include <libgen.h>

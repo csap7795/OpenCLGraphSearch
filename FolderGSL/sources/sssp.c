@@ -5,7 +5,6 @@
 #include <benchmark_utils.h>
 #include <edge_vertice_message.h>
 #include <float.h>
-#include <dijkstra_serial.h>
 #include <unistd.h>
 #include <libgen.h>
 
