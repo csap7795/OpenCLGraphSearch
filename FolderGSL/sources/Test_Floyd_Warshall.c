@@ -2,8 +2,8 @@
 #include <cl_utils.h>
 #include <CL/cl.h>
 #include <matrix.h>
-#include "test_floyd_warshall.h"
-#include "benchmark_utils.h"
+#include <test_floyd_warshall.h>
+#include <benchmark_utils.h>
 
 
 #define REPEATS 10
@@ -34,9 +34,9 @@ void benchmark_floyd_warshall(cl_float **mat, unsigned length, unsigned epv)
 
         for(int i = 0; i<REPEATS;i++)
         {
-           time_global += measure_time_floyd_warshall_global(mat,length,device);
-           time_workgroup += measure_time_floyd_warshall_gpu(mat,length,device);
-           time_gpu += measure_time_floyd_warshall_workgroup(mat,length,device);
+           time_global += measure_time_floyd_warshall_row(mat,length,device);
+           time_gpu += measure_time_floyd_warshall_column(mat,length,device);
+           time_workgroup += measure_time_floyd_warshall_workgroup(mat,length,device);
         }
 
         time_global = time_global/REPEATS;
@@ -50,14 +50,14 @@ void benchmark_floyd_warshall(cl_float **mat, unsigned length, unsigned epv)
 
 }
 
-unsigned long measure_time_floyd_warshall_gpu(cl_float** mat, unsigned length,unsigned device_id)
+unsigned long measure_time_floyd_warshall_column(cl_float** mat, unsigned length,unsigned device_id)
 {
     //create result variables
     cl_float** out_cost_parallel = createFloatMatrix(length);
     cl_uint** out_path_parallel = createUnsignedMatrix(length);
     unsigned long time;
 
-    parallel_floyd_warshall_global_gpu(mat,out_cost_parallel,out_path_parallel,length,device_id,&time);
+    parallel_floyd_warshall_column(mat,out_cost_parallel,out_path_parallel,length,device_id,&time);
 
     //Free resources
     freeFloatMatrix(out_cost_parallel,length);
@@ -66,14 +66,14 @@ unsigned long measure_time_floyd_warshall_gpu(cl_float** mat, unsigned length,un
     return time;
 }
 
-unsigned long measure_time_floyd_warshall_global(cl_float** mat, unsigned length, unsigned device_id)
+unsigned long measure_time_floyd_warshall_row(cl_float** mat, unsigned length, unsigned device_id)
 {
     //create result variables
     cl_float** out_cost_parallel = createFloatMatrix(length);
     cl_uint** out_path_parallel = createUnsignedMatrix(length);
     unsigned long time;
 
-    parallel_floyd_warshall_global(mat,out_cost_parallel,out_path_parallel,length,device_id,&time);
+    parallel_floyd_warshall_row(mat,out_cost_parallel,out_path_parallel,length,device_id,&time);
 
     //Free resources
     freeFloatMatrix(out_cost_parallel,length);
@@ -98,7 +98,7 @@ unsigned long measure_time_floyd_warshall_workgroup(cl_float** mat, unsigned len
     return time;
 }
 
-void verify_floyd_warshall_global_gpu(cl_float** mat, unsigned length)
+void verify_floyd_warshall_column(cl_float** mat, unsigned length)
 {
     //create result variables
     cl_float** out_cost_parallel = createFloatMatrix(length);
@@ -111,7 +111,7 @@ void verify_floyd_warshall_global_gpu(cl_float** mat, unsigned length)
     {
         cl_device_id tmp = cluInitDevice(i,NULL,NULL);
         printf("%s\n",cluGetDeviceDescription(tmp,i));
-        parallel_floyd_warshall_global_gpu(mat,out_cost_parallel,out_path_parallel,length,i,NULL);
+        parallel_floyd_warshall_column(mat,out_cost_parallel,out_path_parallel,length,i,NULL);
         printf("Parallel and serial execution produce same results? ");
         printf("%s\n",verify_floyd_warshall(mat,out_cost_parallel,out_path_parallel,length) ? "TRUE" : "FALSE");
     }
@@ -121,7 +121,7 @@ void verify_floyd_warshall_global_gpu(cl_float** mat, unsigned length)
     freeUnsignedMatrix(out_path_parallel,length);
 }
 
-void verify_floyd_warshall_global(cl_float** mat, unsigned length)
+void verify_floyd_warshall_row(cl_float** mat, unsigned length)
 {
     //create result variables
     cl_float** out_cost_parallel = createFloatMatrix(length);
@@ -135,7 +135,7 @@ void verify_floyd_warshall_global(cl_float** mat, unsigned length)
 
         cl_device_id tmp = cluInitDevice(i,NULL,NULL);
         printf("%s\n",cluGetDeviceDescription(tmp,i));
-        parallel_floyd_warshall_global(mat,out_cost_parallel,out_path_parallel,length,i,NULL);
+        parallel_floyd_warshall_row(mat,out_cost_parallel,out_path_parallel,length,i,NULL);
         printf("Parallel and serial execution produce same results? ");
         printf("%s\n",verify_floyd_warshall(mat,out_cost_parallel,out_path_parallel,length) ? "TRUE" : "FALSE");
     }

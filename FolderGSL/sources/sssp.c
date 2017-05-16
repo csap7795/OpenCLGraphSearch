@@ -61,7 +61,7 @@ void sssp(Graph* graph,unsigned source,cl_float* out_cost,cl_uint* out_path, uns
     //Preprocess Indices and initialize VertexBuffer, Calculate the number of incoming Edges for each vertex and set the sourceVertex of each edge
     // It depends on the Devicetype, whether to make a data-layout-remapping or not. Both calculations are made on GPU as it's normally faster
     if(device_type == CL_DEVICE_TYPE_GPU)
-        preprocessing_parallel(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,&messageBuffersize,0);
+        preprocessing_parallel_gpu(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,&messageBuffersize,0);
     else
         preprocessing_parallel_cpu(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,&messageBuffersize,0);
 

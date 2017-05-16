@@ -161,7 +161,8 @@ void bfs_parallel_workgroup(Graph* graph, cl_uint* out_cost, cl_uint* out_path,u
     err |= clEnqueueReadBuffer(command_queue,path_buffer,CL_FALSE,0,sizeof(cl_uint) * graph->V,out_path,0,NULL,NULL); CLU_ERRCHECK(err,"Error reading back results");
     CLU_ERRCHECK(err,"Error reading back results");
 
-    err = clFinish(command_queue);
+    err = clFlush(command_queue);
+    err |= clFinish(command_queue);
     CLU_ERRCHECK(err,"Error finishing command_queue");
 
     // Save time if asked
@@ -257,7 +258,9 @@ void bfs_parallel_baseline(Graph* graph, cl_uint* out_cost, cl_uint* out_path, u
     err |= clEnqueueReadBuffer(command_queue,path_buffer,CL_FALSE,0,sizeof(cl_uint) * graph->V,out_path,0,NULL,NULL);
     CLU_ERRCHECK(err,"Error reading back results");
 
-    err = clFinish(command_queue);
+    // Wait until all queued commands finish
+    err = clFlush(command_queue);
+    err |= clFinish(command_queue);
     CLU_ERRCHECK(err,"Error finishing command_queue");
 
     // Save time if asked

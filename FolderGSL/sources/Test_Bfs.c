@@ -7,8 +7,7 @@
 #include <stdbool.h>
 #include <benchmark_utils.h>
 
-
-#define REPEATS 10
+#define REPEATS 1
 
 #define CSVFILENAME_WORKGROUP "bfs_workgroup.csv"
 #define CSVFILENAME_BASELINE "bfs_baseline.csv"
@@ -33,7 +32,7 @@ void benchmark_bfs(Graph* graph, unsigned source)
         for(int i = 0; i<REPEATS;i++)
         {
            time_baseline += measure_time_bfs_baseline(graph,source,device);
-           time_workgroup += measure_time_bfs_workgroup(graph,source,device);
+           //time_workgroup += measure_time_bfs_workgroup(graph,source,device);
         }
 
         time_baseline = time_baseline/REPEATS;
@@ -182,4 +181,41 @@ void bfs_serial(Graph* graph, cl_uint *cost, cl_uint *path, unsigned source)
     }
     free(vertices);
 }
+
+
+/*void bfs_serial_queue(Graph* graph,cl_uint *cost, cl_uint *path, unsigned source)
+{
+    queue* bfs_queue = init_queue();
+    queue_add(bfs_queue,source);
+
+    bool* visited = (bool*) calloc(graph->V,sizeof(bool));
+    visited[source] = true;
+    cost[source] = 0;
+    path[source] = source;
+
+    unsigned long start_time = time_ms();
+    while(!queue_is_empty(bfs_queue))
+    {
+        unsigned v = queue_get(bfs_queue);
+        unsigned neighbors = 0;
+        unsigned edge_index = graph->vertices[v];
+
+        neighbors = graph->vertices[v+1] - edge_index;
+
+        for(unsigned i = 0; i<neighbors;i++)
+        {
+            unsigned index = edge_index + i;
+            unsigned neighbor = graph->edges[index];
+            if(!visited[neighbor])
+            {
+                visited[neighbor] = true;
+                cost[neighbor] = cost[v]+1;
+                path[neighbor] = v;
+                queue_add(bfs_queue,neighbor);
+            }
+        }
+    }
+    free(visited);
+    printf("Time for source node %u and serial execution : %lu\n",source,time_ms()-start_time);
+}*/
 

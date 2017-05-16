@@ -12,13 +12,13 @@
 void benchmark_floyd_warshall(cl_float **mat, unsigned length, unsigned epv);
 
 /*Calculates the time for one execution of each algorithm*/
-unsigned long measure_time_floyd_warshall_gpu(cl_float** mat, unsigned length,unsigned device_id);
-unsigned long measure_time_floyd_warshall_global(cl_float** mat, unsigned length, unsigned device_id);
+unsigned long measure_time_floyd_warshall_column(cl_float** mat, unsigned length,unsigned device_id);
+unsigned long measure_time_floyd_warshall_row(cl_float** mat, unsigned length, unsigned device_id);
 unsigned long measure_time_floyd_warshall_workgroup(cl_float** mat, unsigned length,unsigned device_id);
 
 /*Checks the algorithms on right results*/
-void verify_floyd_warshall_global_gpu(cl_float** mat, unsigned length);
-void verify_floyd_warshall_global(cl_float** mat, unsigned length);
+void verify_floyd_warshall_column(cl_float** mat, unsigned length);
+void verify_floyd_warshall_row(cl_float** mat, unsigned length);
 void verify_floyd_warshall_workgroup(cl_float** mat, unsigned length);
 
 /*Is used by the above functions to determine if the algorihtms produce right results*/

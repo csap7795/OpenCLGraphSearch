@@ -24,6 +24,7 @@ void freeUnsignedMatrix(cl_uint** matrix, unsigned length);
 void freeFloatMatrix(cl_float** matrix, unsigned length);
 bool path_matrix_equal(cl_uint** mat1, cl_uint** mat2, unsigned length);
 cl_float** resizeFloatMatrix(cl_float** mat, unsigned length, unsigned blocksize);
+void fillPathMatrix(cl_uint** matrix, unsigned length);
 
 
 #endif // MATRIX_H_INCLUDED

@@ -26,7 +26,7 @@ if(__err != CL_SUCCESS) { \
 // ------------------------------------------------------------------------------------------------ declarations
 
 /* used for making globalSize a multiple of localSize */
-unsigned round_up_globalSize(unsigned globalSize, unsigned localSize);
+size_t round_up_globalSize(size_t globalSize, size_t localSize);
 
 /*Counts Devices across all platforms*/
 unsigned cluCountDevices();

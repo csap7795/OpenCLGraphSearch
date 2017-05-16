@@ -682,12 +682,209 @@ void writeGraphToFile(const char *filename, Graph* graph)
 
 }
 
-/*void parseFile(const char* filename, int** vertices, int** edges, int** weight,  int* vertice_count,  int* edge_count, int* weight_count)
+bool checkacyclic(Graph* graph)
+{
+    queue* q = init_queue();
+    bool* visited = (bool*)calloc(graph->V,sizeof(bool));
+    unsigned* count_neighbor = (unsigned*)calloc(graph->V,sizeof(unsigned));
+
+    int source = 0;
+    do
+    {
+
+        visited[source] = true;
+        unsigned num_neighbors = graph->vertices[source+1]-graph->vertices[source];
+        if(count_neighbor[source] < num_neighbors)
+        {
+            queue_add_beginning(q,source);
+            unsigned neighbor = graph->edges[graph->vertices[source]+ count_neighbor[source]];
+            if(!visited[neighbor]){
+                count_neighbor[source]++;
+                source = neighbor;
+            }
+            else
+            {
+                free(visited);
+                free(count_neighbor);
+                free_queue(q);
+                return false;
+            }
+        }
+
+        else
+        {
+        visited[source] = false;
+        source = queue_get(q);
+        }
+
+    }while(!queue_is_empty(q));
+
+
+
+    free(visited);
+    free(count_neighbor);
+    free_queue(q);
+    return true;
+}
+
+Graph* removeCycles(Graph* graph)
+{
+    queue* q = init_queue();
+    bool* visited = (bool*)calloc(graph->V,sizeof(bool));
+    unsigned* count_neighbor = (unsigned*)calloc(graph->V,sizeof(unsigned));
+
+    int source = 0;
+    int max = 0;
+    int maximum =0;
+    do
+    {
+
+        visited[source] = true;
+        unsigned num_neighbors = graph->vertices[source+1]-graph->vertices[source];
+        if(count_neighbor[source] < num_neighbors)
+        {
+            queue_add_beginning(q,source);
+            unsigned neighbor = graph->edges[graph->vertices[source]+ count_neighbor[source]];
+            if(!visited[neighbor]){
+                count_neighbor[source]++;
+                max++;
+                source = neighbor;
+            }
+            else
+            {
+                graph->edges[graph->vertices[source]+ count_neighbor[source]] = CL_UINT_MAX;
+                count_neighbor[source]++;
+            }
+        }
+
+        else
+        {
+        visited[source] = false;
+        if(max>maximum)
+            maximum = max;
+        max--;
+        source = queue_get(q);
+        }
+
+    }while(!queue_is_empty(q));
+
+
+    printf("Max: %d\n",maximum);
+    free(visited);
+    free(count_neighbor);
+    free_queue(q);
+    return createAcyclicFromGraph(graph);
+
+
+}
+
+void removeCycleSource(Graph* graph, unsigned source)
+{
+    queue* q = init_queue();
+    bool* visited = (bool*)calloc(graph->V,sizeof(bool));
+
+    for(int i = graph->vertices[source];i<graph->vertices[source+1];i++)
+        if(graph->edges[i] != CL_UINT_MAX)
+            queue_add(q,graph->edges[i]);
+
+
+    while(!queue_is_empty(q))
+    {
+        unsigned node = queue_get(q);
+        for(int i = graph->vertices[node];i<graph->vertices[node+1];i++)
+        {
+            unsigned e = graph->edges[i];
+            if(e == CL_UINT_MAX)
+                continue;
+
+            if(e == source)
+                graph->edges[i] = CL_UINT_MAX;
+
+            else if (visited[e] == false)   {
+                queue_add(q,e);
+                visited[e] = true;
+            }
+
+        }
+    }
+    free(visited);
+    free_queue(q);
+}
+
+
+Graph* createAcyclicFromGraph(Graph* graph)
+{
+    unsigned nRemoved = 0;
+    for(int i = 0; i<graph->E;i++)
+    {
+        if(graph->edges[i] == CL_UINT_MAX)
+            nRemoved++;
+    }
+    Graph* acyclic = getEmptyGraph(graph->V,graph->E-nRemoved);
+
+    if(graph->weight == NULL)
+    {
+        free(acyclic->weight);
+        acyclic->weight = NULL;
+    }
+
+    unsigned edge_count = 0;
+    for(int i = 0; i<graph->V;i++)
+    {
+        acyclic->vertices[i] = edge_count;
+        for(cl_uint e = graph->vertices[i]; e < graph->vertices[i+1]; e++)
+        {
+            if(graph->edges[e] != CL_UINT_MAX)
+            {
+                acyclic->edges[edge_count] = graph->edges[e];
+
+                if(graph->weight != NULL)
+                    acyclic->weight[edge_count] = graph->weight[e];
+
+                edge_count++;
+            }
+        }
+    }
+    acyclic->vertices[acyclic->V] = acyclic->E;
+    freeGraph(graph);
+    return acyclic;
+}
+
+Graph* readInTextData(const char* filename)
 {
     FILE *fp = fopen(filename,"r");
+    Graph* graph = getEmptyGraph(1632803,30622564);
+    free(graph->weight);
+    unsigned old = 0;
+    unsigned rec = 0;
+    unsigned neighbor;
+    unsigned edgecount = 0;
+    graph->vertices[0] = 0;
+    while(fscanf(fp, "%u%u",&rec,&neighbor) == 2)
+    {
+        if(rec-1 != old)
+        {
+            old = rec-1;
+            graph->vertices[old] = edgecount;
+            graph->edges[edgecount] = neighbor-1;
+        }
+        else
+        {
+            graph->vertices[old] = edgecount;
+            graph->edges[edgecount] = neighbor-1;
+        }
+        edgecount++;
+    }
+    free(fp);
+    return graph;
+}
+
+void parseFile(const char* filename, int** vertices, int** edges, int** weight,  int* vertice_count,  int* edge_count, int* weight_count)
+{
+    /*FILE *fp = fopen(filename,"r");
     int amount;
 
-    /* reads input data from file for vertices and stores them in vertices
+    // reads input data from file for vertices and stores them in vertices
     fscanf(fp, "%d", vertice_count);
     int* vertice_buffer = (int*) realloc(*vertices,*vertice_count * sizeof(int));
 
@@ -721,8 +918,8 @@ void writeGraphToFile(const char *filename, Graph* graph)
     *weight = weight_buffer;
 
 
-    fclose(fp);
-}*/
+    fclose(fp);*/
+}
 
 
 

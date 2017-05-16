@@ -43,7 +43,7 @@ unsigned long measure_time_dijkstra(Graph* graph, unsigned source, unsigned devi
     cl_uint* out_path_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
     unsigned long time;
 
-    dijkstra_parallel(graph,source,device_id,out_cost_parallel,out_path_parallel,NULL,NULL,&time);
+    dijkstra_parallel(graph,source,device_id,out_cost_parallel,out_path_parallel,&time);
 
     free(out_cost_parallel);
     free(out_path_parallel);
@@ -64,7 +64,7 @@ void verify_dijkstra_parallel(Graph* graph, unsigned source)
         cl_device_id tmp = cluInitDevice(i,NULL,NULL);
         printf("%s\n",cluGetDeviceDescription(tmp,i));
         for(int k = 0; k<REPEATS;k++){
-        dijkstra_parallel(graph,source,i,out_cost_parallel,out_path_parallel,NULL,NULL,NULL);
+        dijkstra_parallel(graph,source,i,out_cost_parallel,out_path_parallel,NULL);
         //printf("Parallel and serial execution produce same results? ");
         printf("%s\n",verify_dijkstra(graph,out_cost_parallel,out_path_parallel,source) ? "" : "FALSE");}
     }

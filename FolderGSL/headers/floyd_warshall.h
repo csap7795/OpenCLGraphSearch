@@ -6,9 +6,9 @@
 #include <stdbool.h>
 
 //Calculates the Floyd Warshall Algorithm in parallel on global Memory in row major fashion
-void parallel_floyd_warshall_global(cl_float** in_matrix, cl_float** out_matrix, cl_uint** out_path, unsigned length, size_t device_num, unsigned long *time);
+void parallel_floyd_warshall_row(cl_float** in_matrix, cl_float** out_matrix, cl_uint** out_path, unsigned length, size_t device_num, unsigned long *time);
 //Calculates the Floyd Warshall Algorithm, works on transposed matrices so tha data can be accessed in a column major fashion
-void parallel_floyd_warshall_global_gpu(cl_float** in_matrix, cl_float** out_matrix, cl_uint** out_path, unsigned length, size_t device_num, unsigned long *time);
+void parallel_floyd_warshall_column(cl_float** in_matrix, cl_float** out_matrix, cl_uint** out_path, unsigned length, size_t device_num, unsigned long *time);
 //Calculates the Floyd Warshall Algorithm on local memory, using tiles
 void parallel_floyd_warshall_workgroup(cl_float** matrix, cl_float** out_matrix, cl_uint** out_path, unsigned length, size_t device_num, unsigned long *time);
 

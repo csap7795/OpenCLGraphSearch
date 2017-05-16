@@ -1,6 +1,6 @@
 #include "cl_utils.h"
 // ------------------------------------------------------------------------------------------------ implementations
-unsigned round_up_globalSize(unsigned globalSize, unsigned localSize)
+size_t round_up_globalSize(size_t globalSize, size_t localSize)
 {
     if(globalSize%localSize == 0)
         return globalSize;

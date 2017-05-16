@@ -175,14 +175,25 @@ void dijkstra_parallel(Graph* graph, unsigned source, unsigned device_num, cl_fl
 
     }*/
 
+    // if asked, save the results in the respective out variables
+    if(out_cost != NULL && out_path != NULL)
+    {
+        err = clEnqueueReadBuffer(command_queue,cost_buffer,CL_FALSE,0,sizeof(cl_float) * graph->V,out_cost,0,NULL,NULL);
+        err |= clEnqueueReadBuffer(command_queue,predecessor_buffer,CL_FALSE,0,sizeof(cl_uint) * graph->V,out_path,0,NULL,NULL);
+        CLU_ERRCHECK(err,"Error reading back results");
+    }
+
+    // Finish all commands in Commandqueue
+    err = clFlush(command_queue);
+    err |= clFinish(command_queue);
+    CLU_ERRCHECK(err,"Error finishing command_queue");
+
     //save time if asked
     if(time != NULL)
         *time = time_ms()-start_time;
 
     // Clean up
-    err = clFlush(command_queue);
-    err |= clFinish(command_queue);
-    err |= clReleaseKernel(init_kernel);
+    err = clReleaseKernel(init_kernel);
     err |= clReleaseKernel(dijkstra1_kernel);
     err |= clReleaseKernel(dijkstra2_kernel);
     err |= clReleaseProgram(program);

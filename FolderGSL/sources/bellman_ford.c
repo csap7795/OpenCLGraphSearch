@@ -1,12 +1,12 @@
 #include <dijkstra_parallel.h>
+#include <cl_utils.h>
+#include <benchmark_utils.h>
+
 #include <stdio.h>
 #include <CL/cl.h>
 #include <stdbool.h>
 #include <limits.h>
 #include <float.h>
-#include <dijkstra_serial.h>
-#include <cl_utils.h>
-#include <benchmark_utils.h>
 #include <unistd.h>
 #include <libgen.h>
 

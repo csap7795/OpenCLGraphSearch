@@ -49,7 +49,6 @@ void preprocessing_parallel_cpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint*
 
     //calculate the write positions for each edge in the messagebuffer
     CalculateWriteIndices(graph,oldToNew,messageWriteIndex,offset,numEdgesSorted, messageBufferSize);
-    //remapMassageBuffer_parallel(graph,messageWriteIndex,numEdgesSorted,offset,oldToNew,messageBufferSize);
 
     // save new aliases
     sortSourceVertices(graph,sourceVertices,oldToNew,sourceVerticesSorted);
@@ -66,7 +65,7 @@ void preprocessing_parallel_cpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint*
 }
 
 
-void preprocessing_parallel(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted,cl_uint* numEdgesSorted, cl_uint* oldToNew,cl_uint* newToOld, cl_uint* offset,cl_uint* messageBufferSize,size_t device_num)
+void preprocessing_parallel_gpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted,cl_uint* numEdgesSorted, cl_uint* oldToNew,cl_uint* newToOld, cl_uint* offset,cl_uint* messageBufferSize,size_t device_num)
 {
     // Build the kernel
     unsigned long start_time = time_ms();
@@ -332,7 +331,7 @@ void remapMassageBuffer_parallel(Graph* graph,cl_uint *messageWriteIndex, cl_uin
 
     //Use this if you have a powerfull GPU
 //    start_time = time_ms();
-//    parallelExecutionofWriteIndices(graph,oldToNew,offset,messageWriteIndex,buckets,*messageBufferSize);
+//    parallelCalculationofWriteIndices(graph,oldToNew,offset,messageWriteIndex,buckets,*messageBufferSize);
 //    printf("Function: parallelCalculationofWriteIndices...\t%lu\n",time_ms()-start_time);
 
     //Clean up
@@ -345,7 +344,7 @@ void remapMassageBuffer_parallel(Graph* graph,cl_uint *messageWriteIndex, cl_uin
     CLU_ERRCHECK(err, "Failed during finalizing OpenCL in function remapMessageBuffer_parallel()");
 }
 
-void parallelExecutionofWriteIndices(Graph* graph, cl_uint* oldToNew, cl_uint* offset, cl_uint* messageWriteIndex, size_t buckets, cl_uint messageBufferSize)
+void parallelCalculationWriteIndices(Graph* graph, cl_uint* oldToNew, cl_uint* offset, cl_uint* messageWriteIndex, size_t buckets, cl_uint messageBufferSize)
 {
     // Calculate the Write Indices for the Edges
     cl_int err;
@@ -497,128 +496,3 @@ void CalculateWriteIndices(Graph* graph, cl_uint *oldToNew, cl_uint *messageWrit
     }
     free(helper);
 }
-
-/*
-void remapMassageBuffer(Graph* graph,cl_uint *messageWriteIndex, cl_uint *numEdgesSorted, cl_uint* offset, cl_uint *oldToNew, cl_uint *messageBufferSize)
-{
-
-    *messageBufferSize = graph->E;
-    // Calculate the Write Indices for the Edges
-    unsigned* helper = (unsigned*)calloc(graph->V,sizeof(unsigned));
-    for(int i = 0; i<graph->E;i++)
-    {
-        cl_uint old_source = graph->edges[i];
-        cl_uint new_source = oldToNew[old_source];
-        messageWriteIndex[i] = offset[new_source] + helper[old_source];
-        helper[old_source]++;
-    }
-    free(helper);
-     // Remap MassageBuffer
-    // use this to calculate the amount of buckets for the remapping
-    unsigned group_num = 1;
-
-    size_t buckets = graph->V / group_num;
-    if(graph->V % group_num != 0)
-        buckets++;
-
-    offset[0] = 0;
-    *messageBufferSize = 0;
-
-    //Calculate offset for read operation in vertexStage and the total amount of memory for the messageBuffer
-    // Can be parallelized , maximum is a reduction operation, messageBufferSize is a reduction and offset a scan
-    for(int i = 0; i<buckets; i++)
-    {
-        unsigned max = 0;
-        for(int j = 0; j<group_num;j++)
-        {
-            unsigned index = i*group_num+ j;
-            if(index<graph->V && numEdgesSorted[index] > max)
-                max = numEdgesSorted[index];
-        }
-        *messageBufferSize += max*group_num;
-        if(i<buckets-1)
-             offset[i+1] = offset[i] + max*group_num;
-    }
-
-    // Calculate the Write Indices for the Edges
-    unsigned* helper = (unsigned*)calloc(graph->V,sizeof(unsigned));
-    for(int i = 0; i<graph->E;i++)
-    {
-        cl_uint old_source = graph->edges[i];
-        cl_uint new_source = oldToNew[old_source];
-        unsigned group_id = new_source/group_num;
-        unsigned inner_id = new_source%group_num;
-        messageWriteIndex[i] = offset[group_id] + inner_id + (helper[old_source]*group_num);
-        helper[old_source]++;
-    }
-    free(helper);
-}*/
-/*void preprocessing(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted, cl_uint* numEdgesSorted, cl_uint* oldToNew, cl_uint* offset,cl_uint* messageBufferSize)
-{
-        // Fill sourceVertice array and numEdges which is the number of every incoming edges for every vertice
-        int  edge_count = 0;
-        int num_neighbors = 0;
-        // Can be parallelized
-        for(int i = 0; i<graph->V-1;i++)
-        {
-            num_neighbors = graph->vertices[i+1] - graph->vertices[i];
-            for(int j = 0; j<num_neighbors;j++)
-            {
-                sourceVerticesSorted[edge_count+j] = i;
-                numEdgesSorted[graph->edges[edge_count+j]]++;
-            }
-            edge_count += num_neighbors;
-        }
-        num_neighbors = graph->E - graph->vertices[graph->V-1];
-        for(int j = 0; j<num_neighbors;j++)
-        {
-            sourceVerticesSorted[edge_count+j] = graph->V-1;
-            numEdgesSorted[graph->edges[edge_count+j]]++;
-        }
-
-        // sort MessageBuffer
-        messageBufferSort(graph,numEdgesSorted,oldToNew,offset);
-
-        //remap MessageBuffer
-        remapMassageBuffer(graph,messageWriteIndex,numEdgesSorted,offset,oldToNew,messageBufferSize);
-
-
-}*/
-
-
-
-/*void preprocessing_serial(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted, cl_uint* numEdgesSorted, cl_uint* oldToNew, cl_uint* offset,cl_uint* messageBufferSize)
-{
-     //Fill sourceVertice array and numEdges which is the number of every incoming edges for every vertice
-        int  edge_count = 0;
-        int num_neighbors = 0;
-
-        for(int i = 0; i<graph->V;i++)
-        {
-            num_neighbors = graph->vertices[i+1] - graph->vertices[i];
-            for(int j = 0; j<num_neighbors;j++)
-            {
-                sourceVerticesSorted[edge_count+j] = i;
-                numEdgesSorted[graph->edges[edge_count+j]]++;
-            }
-            edge_count += num_neighbors;
-        }
-
-        // sort MessageBuffer
-        messageBufferSort(graph,numEdgesSorted,oldToNew,offset);
-}*/
-
-
-/*void messageBufferSort(Graph* graph,cl_uint* inEdgesSorted, cl_uint* oldToNew, cl_uint* offset)
-{
-    //Calculate offsets
-    offset[0] = 0;
-    int i = 0;
-    for(int i; i<graph->V-1;i++)
-    {
-        oldToNew[i] = i;
-        offset[i+1] = offset[i] + inEdgesSorted[i];
-    }
-    oldToNew[i] = i;
-}*/
-

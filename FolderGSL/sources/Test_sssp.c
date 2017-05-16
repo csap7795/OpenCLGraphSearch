@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <benchmark_utils.h>
 #include <dikstra_path.h>
+#include <test_dijkstra.h>
 
 #define REPEATS 10
 #define CSVFILENAME_SSSP "sssp.csv"

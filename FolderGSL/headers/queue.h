@@ -21,6 +21,7 @@ struct queue
 
 typedef struct queue queue;
 void queue_add(queue* q,unsigned id);
+void queue_add_beginning(queue* q, unsigned id);
 unsigned queue_get(queue* q);
 queue* init_queue ();
 void free_queue(queue* q);

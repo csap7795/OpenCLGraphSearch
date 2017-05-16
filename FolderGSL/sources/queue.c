@@ -1,5 +1,16 @@
 #include "queue.h"
 
+void queue_add_beginning(queue* q, unsigned id)
+{
+    if(queue_is_empty(q))
+        queue_add(q,id);
+
+    node* n = (node*)malloc(sizeof(node));
+    n->id = id;
+    n->next = q->head;
+
+    q->head = n;
+}
 void queue_add(queue* q,unsigned id)
 {
     node* n = (node*)malloc(sizeof(node));

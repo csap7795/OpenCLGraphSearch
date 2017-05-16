@@ -34,6 +34,9 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
 
     build_kernel(device_num);
 
+    //start measuring time
+    unsigned long start_time = time_ms();
+
     //Allocate Data
     cl_uint* sourceVerticesSorted = (cl_uint*)malloc(graph->E * sizeof(cl_uint));
     cl_uint* messageWriteIndex = (cl_uint*) malloc(graph->E * sizeof(cl_uint));
@@ -45,20 +48,17 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
     cl_int err;
 
     //Preprocess Indices and initialize VertexBuffer, Calculate the number of incoming Edges for each vertex and set the sourceVertex of each edge
-
-    unsigned long start_time = time_ms();
     if(PREPROCESS_ENABLE)
-        preprocessing_parallel(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,&messageBuffersize,1);
+        preprocessing_parallel_gpu(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,&messageBuffersize,1);
     else
         topo_sort_preprocess(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,offset,&messageBuffersize);
 
     cl_bool *messageBuffer = (cl_bool*)calloc(messageBuffersize, sizeof(cl_bool));
 
-
+    // Create Memory Buffers
     cl_mem inEdges_buffer = clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_uint) * graph->V, NULL, &err);
-    CLU_ERRCHECK(err,"Failed creating edgebuffer");
+    CLU_ERRCHECK(err,"Failed creating inEdges_buffer");
 
-    // Create Memory Buffers for Helper Objects
     cl_mem message_buffer= clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_bool) * messageBuffersize, NULL,&err);
     CLU_ERRCHECK(err,"Failed creating message_buffer");
 
@@ -69,10 +69,10 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
     CLU_ERRCHECK(err,"Failed creating sourceVertices_buffer");
 
     cl_mem  offset_buffer = clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_uint) * (graph->V), NULL, &err);
-    CLU_ERRCHECK(err,"Failed creating active_buffer");
+    CLU_ERRCHECK(err,"Failed creating offset_buffer");
 
     cl_mem order_buffer = clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(cl_uint) * (graph->V), NULL, &err);
-    CLU_ERRCHECK(err,"Failed creating cost_buffer");
+    CLU_ERRCHECK(err,"Failed creating order_buffer");
 
     cl_mem  active_buffer = clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_bool) * (graph->V), NULL, &err);
     CLU_ERRCHECK(err,"Failed creating active_buffer");
@@ -81,7 +81,6 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
     CLU_ERRCHECK(err,"Failed creating finished_flag");
 
     // Copy Graph Data to their respective memory buffers
-
     err = clEnqueueWriteBuffer(command_queue, message_buffer, CL_FALSE, 0, messageBuffersize * sizeof(cl_bool), messageBuffer , 0, NULL, NULL);
     err = clEnqueueWriteBuffer(command_queue, messageWriteIndex_buffer, CL_FALSE, 0, graph->E * sizeof(cl_uint), messageWriteIndex , 0, NULL, NULL);
     err = clEnqueueWriteBuffer(command_queue, sourceVertices_buffer, CL_FALSE, 0, graph->E * sizeof(cl_uint), sourceVerticesSorted , 0, NULL, NULL);
@@ -90,6 +89,7 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
 
     CLU_ERRCHECK(err,"Failed copying graph data to buffers");
 
+    // Create the kernels
     cl_kernel init_kernel = clCreateKernel(program,"initialize",&err);
     CLU_ERRCHECK(err,"Failed to create initializing kernel from program");
 
@@ -99,21 +99,21 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
     cl_kernel vertex_kernel = clCreateKernel(program,"vertexCompute",&err);
     CLU_ERRCHECK(err,"Failed to create vertexCompute kernel from program");
 
-    //Set KernelArguments
+
     bool finished = true;
     cl_uint current_order = 0;
-
+    //Set KernelArguments
     cluSetKernelArguments(init_kernel,4,sizeof(cl_mem),(void*)&inEdges_buffer,sizeof(cl_mem),(void*)&order_buffer,sizeof(cl_mem),(void*)&active_buffer,sizeof(cl_mem),(void*)&finished_flag);
     cluSetKernelArguments(edge_kernel,5,sizeof(cl_mem),(void*)&inEdges_buffer,sizeof(cl_mem),(void*)&sourceVertices_buffer,sizeof(cl_mem),(void*)&messageWriteIndex_buffer,sizeof(cl_mem),(void*)&message_buffer,sizeof(cl_mem),(void*)&active_buffer);
     cluSetKernelArguments(vertex_kernel,7,sizeof(cl_mem),(void*)&offset_buffer,sizeof(cl_mem),(void*)&message_buffer,sizeof(cl_mem),(void*)&inEdges_buffer,sizeof(cl_mem),(void*)&order_buffer,sizeof(cl_mem),(void*)&active_buffer,sizeof(cl_mem),(void*)&finished_flag, sizeof(cl_uint),&current_order);
 
     // Execute the OpenCL kernel for initializing Buffers
-    size_t globalEdgeSize = graph->E;
     size_t globalVertexSize = graph->V;
     CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, init_kernel, 1, NULL, &globalVertexSize, NULL, 0, NULL, NULL),"Error executing InitializeKernel");
     err = clEnqueueReadBuffer(command_queue,finished_flag,CL_TRUE,0,sizeof(cl_bool),&finished,0,NULL,NULL);
 
     // start looping both main kernels
+    size_t globalEdgeSize = graph->E;
     while(!finished)
     {
 
@@ -144,9 +144,21 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
     }
 
     else
-        err = clEnqueueReadBuffer(command_queue,order_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,out_order_parallel,0,NULL,NULL);
+    {
+        err = clEnqueueReadBuffer(command_queue,order_buffer,CL_FALSE,0,sizeof(cl_uint) * graph->V,out_order_parallel,0,NULL,NULL);
+        CLU_ERRCHECK(err,"Error reading back results of transpose_kernel");
+    }
 
-    //Clean up
+    // Wait for all commands in command_queue to finish.
+    err = clFlush(command_queue);
+    err |= clFinish(command_queue);
+    CLU_ERRCHECK(err,"Error finishing command_queue");
+
+    // Save time if asked
+    if(time != NULL)
+        *time = time_ms()-start_time;
+
+    // Free allocated data
     free(sourceVerticesSorted);
     free(messageBuffer);
     free(messageWriteIndex);
@@ -154,6 +166,7 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
     free(oldToNew);
     free(newToOld);
 
+    //Clean up
     err = clFlush(command_queue);
     err |= clFinish(command_queue);
     err |= clReleaseKernel(init_kernel);
@@ -171,8 +184,7 @@ void topological_order(Graph* graph, cl_uint* out_order_parallel,unsigned device
     err |= clReleaseCommandQueue(command_queue);
     err |= clReleaseContext(context);
 
-    if(time != NULL)
-        *time = time_ms()-start_time;
+    CLU_ERRCHECK(err, "Failed during finalizing OpenCL");
 }
 
 void topo_sort_preprocess(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVertices, cl_uint* inEdges, cl_uint* offset, cl_uint *messageBufferSize)

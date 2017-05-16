@@ -1,11 +1,12 @@
 #include <floyd_warshall.h>
+#include <benchmark_utils.h>
+#include <matrix.h>
+
 #include <CL/cl.h>
 #include <cl_utils.h>
 #include <unistd.h>
 #include <libgen.h>
 #include <stdbool.h>
-#include <benchmark_utils.h>
-#include <matrix.h>
 
 #define BLOCK_SIZE 8
 
@@ -29,7 +30,7 @@ static void build_kernel(size_t device_num)
 }
 
 // The graph is available in a adjacency Matrix, where length denotes the number of vertices and device_num the device the user wants to work on.
-void parallel_floyd_warshall_global(cl_float** in_matrix, cl_float** out_matrix, cl_uint** out_path, unsigned length, size_t device_num, unsigned long * time)
+void parallel_floyd_warshall_row(cl_float** in_matrix, cl_float** out_matrix, cl_uint** out_path, unsigned length, size_t device_num, unsigned long * time)
 {
     build_kernel(device_num);
 
@@ -92,17 +93,21 @@ void parallel_floyd_warshall_global(cl_float** in_matrix, cl_float** out_matrix,
 
     for(int i = 0; i< length;i++)
     {
-        err = clEnqueueReadBuffer(command_queue,help,CL_TRUE,sizeof(cl_float) * length * i,sizeof(cl_float) * length,out_matrix[i],0,NULL,NULL);
-        err = clEnqueueReadBuffer(command_queue,path_buffer,CL_TRUE,sizeof(cl_uint) * length * i,sizeof(cl_uint) * length,out_path[i],0,NULL,NULL);
+        err = clEnqueueReadBuffer(command_queue,help,CL_FALSE,sizeof(cl_float) * length * i,sizeof(cl_float) * length,out_matrix[i],0,NULL,NULL);
+        err = clEnqueueReadBuffer(command_queue,path_buffer,CL_FALSE,sizeof(cl_uint) * length * i,sizeof(cl_uint) * length,out_path[i],0,NULL,NULL);
     }
 
+    // Wait until all queued commands finish
+    err = clFlush(command_queue);
+    err |= clFinish(command_queue);
+    CLU_ERRCHECK(err,"Error finishing command_queue");
+
+    // Save time if requested
     if(time != NULL)
         *time = time_ms()-start_time;
 
     //Finalize
-    err = clFlush(command_queue);
-    err |= clFinish(command_queue);
-    err |= clReleaseKernel(kernel);
+    err = clReleaseKernel(kernel);
     err |= clReleaseProgram(program);
     err |= clReleaseMemObject(matrix_buffer);
     err |= clReleaseMemObject(out_buffer);
@@ -110,9 +115,11 @@ void parallel_floyd_warshall_global(cl_float** in_matrix, cl_float** out_matrix,
     err |= clReleaseCommandQueue(command_queue);
     err |= clReleaseContext(context);
 
+    CLU_ERRCHECK(err,"Failed finalizing OpenCL");
+
 }
 
-void parallel_floyd_warshall_global_gpu(cl_float** in_matrix, cl_float** out_matrix, cl_uint** out_path, unsigned length, size_t device_num, unsigned long *time)
+void parallel_floyd_warshall_column(cl_float** in_matrix, cl_float** out_matrix, cl_uint** out_path, unsigned length, size_t device_num, unsigned long *time)
 {
     build_kernel(device_num);
     unsigned long start_time = time_ms();
@@ -186,17 +193,20 @@ void parallel_floyd_warshall_global_gpu(cl_float** in_matrix, cl_float** out_mat
 
     for(int i = 0; i< length;i++)
     {
-        err = clEnqueueReadBuffer(command_queue,row_matrix_buffer,CL_TRUE,sizeof(cl_float) * length * i,sizeof(cl_float) * length,out_matrix[i],0,NULL,NULL);
-        err = clEnqueueReadBuffer(command_queue,row_path_buffer,CL_TRUE,sizeof(cl_uint) * length * i,sizeof(cl_uint) * length,out_path[i],0,NULL,NULL);
+        err = clEnqueueReadBuffer(command_queue,row_matrix_buffer,CL_FALSE,sizeof(cl_float) * length * i,sizeof(cl_float) * length,out_matrix[i],0,NULL,NULL);
+        err = clEnqueueReadBuffer(command_queue,row_path_buffer,CL_FALSE,sizeof(cl_uint) * length * i,sizeof(cl_uint) * length,out_path[i],0,NULL,NULL);
     }
+
+    // Wait until all queued commands finish
+    err = clFlush(command_queue);
+    err |= clFinish(command_queue);
+    CLU_ERRCHECK(err,"Error finishing command_queue");
 
     if(time != NULL)
        *time = time_ms()-start_time;
 
     //Finalize
-    err = clFlush(command_queue);
-    err |= clFinish(command_queue);
-    err |= clReleaseKernel(kernel);
+    err = clReleaseKernel(kernel);
     err |= clReleaseKernel(float_transpose_kernel);
     err |= clReleaseKernel(unsigned_transpose_kernel);
     err |= clReleaseProgram(program);
@@ -207,6 +217,8 @@ void parallel_floyd_warshall_global_gpu(cl_float** in_matrix, cl_float** out_mat
     err |= clReleaseMemObject(row_path_buffer);
     err |= clReleaseCommandQueue(command_queue);
     err |= clReleaseContext(context);
+
+    CLU_ERRCHECK(err,"Failed finalizing OpenCL");
 
 }
 
@@ -290,9 +302,14 @@ void parallel_floyd_warshall_workgroup(cl_float** in_matrix, cl_float** out_matr
 
     for(int i = 0; i< out_length;i++)
     {
-        err = clEnqueueReadBuffer(command_queue,out_buffer,CL_TRUE,sizeof(cl_float) * length * i,sizeof(cl_float) * out_length,out_matrix[i],0,NULL,NULL);
-        err = clEnqueueReadBuffer(command_queue,path_out,CL_TRUE,sizeof(cl_uint) * length * i,sizeof(cl_uint) * out_length,out_path[i],0,NULL,NULL);
+        err = clEnqueueReadBuffer(command_queue,out_buffer,CL_FALSE,sizeof(cl_float) * length * i,sizeof(cl_float) * out_length,out_matrix[i],0,NULL,NULL);
+        err = clEnqueueReadBuffer(command_queue,path_out,CL_FALSE,sizeof(cl_uint) * length * i,sizeof(cl_uint) * out_length,out_path[i],0,NULL,NULL);
     }
+
+    // Wait until all queued commands finish
+    err = clFlush(command_queue);
+    err |= clFinish(command_queue);
+    CLU_ERRCHECK(err,"Error finishing command_queue");
 
     if(time != NULL)
         *time = time_ms()-start_time;
@@ -301,9 +318,7 @@ void parallel_floyd_warshall_workgroup(cl_float** in_matrix, cl_float** out_matr
     freeFloatMatrix(matrix,length);
 
     //Finalize
-    err = clFlush(command_queue);
-    err |= clFinish(command_queue);
-    err |= clReleaseKernel(phase1);
+    err = clReleaseKernel(phase1);
     err |= clReleaseKernel(phase2);
     err |= clReleaseKernel(phase3);
     err |= clReleaseKernel(row_to_tile_kernel);
@@ -316,6 +331,8 @@ void parallel_floyd_warshall_workgroup(cl_float** in_matrix, cl_float** out_matr
     err |= clReleaseMemObject(path_out);
     err |= clReleaseCommandQueue(command_queue);
     err |= clReleaseContext(context);
+
+    CLU_ERRCHECK(err,"Failed finalizing OpenCL");
 
 }
 

@@ -8,7 +8,7 @@
 #include <benchmark_utils.h>
 
 #define CSVFILENAME_TOPO "topo.csv"
-#define REPEATS 10
+#define REPEATS 1
 
 void benchmark_topo(Graph* graph)
 {
@@ -46,7 +46,7 @@ unsigned long measure_time_topo(Graph* graph, unsigned device_id)
     return time;
 }
 
-void test_topo_sort(Graph* graph)
+void verify_topo_sort_parallel(Graph* graph)
 {
     //create result variables
     cl_uint* out_order_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
