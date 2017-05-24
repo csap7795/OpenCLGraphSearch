@@ -1,0 +1,50 @@
+
+verify_bfs_baseline
+GPU
+Parallel and serial execution produce same results? TRUE
+CPU
+Parallel and serial execution produce same results? TRUE
+
+verify_bfs_workgroup
+GPU
+Parallel and serial execution produce same results? TRUE
+CPU
+Parallel and serial execution produce same results? TRUE
+
+verify_sssp_opt
+GPU
+Parallel and serial execution produce same results? TRUE
+CPU
+Parallel and serial execution produce same results? TRUE
+
+verify_sssp_normal
+GPU
+Parallel and serial execution produce same results?	TRUE
+CPU
+Parallel and serial execution produce same results?	TRUE
+
+verify_dijkstra
+GPU
+Parallel and serial execution produce same results? TRUE
+CPU
+Parallel and serial execution produce same results? TRUE
+
+verify_topo_sort_opt
+GPU
+Parallel and serial execution produce same results? TRUE
+CPU
+Parallel and serial execution produce same results? TRUE
+
+verify_topo_sort_normal
+GPU
+Parallel and serial execution produce same results? TRUE
+CPU
+Parallel and serial execution produce same results? TRUE
+
+verify_transpose
+GPU
+Time parallel transpose: 1	 Time serial transpose: 1
+Parallel and serial execution produce same results? TRUE
+CPU
+Time parallel transpose: 1	 Time serial transpose: 0
+Parallel and serial execution produce same results? TRUE
