@@ -24,7 +24,7 @@ __kernel void initializeBuffers(__global bool *maskArray, __global float *costAr
 }
 
 /* Dijkstra Kernel. Note that calculating value could lead to an OVERFLOW, if the cost to the path exceeds FLT_MAX.*/
-__kernel void dijkstra1(__global unsigned *vertexArray, __global unsigned *edgeArray, __global float *weightArray, __global bool *maskArray, __global float *costArray, __global float *updatingCostArray,__global unsigned *predecessor,volatile __global int *semaphore)
+__kernel void dijkstra1(__global unsigned *vertexArray, __global unsigned *edgeArray, __global float *weightArray, __global bool *maskArray, __global float *costArray, __global float *updatingCostArray,__global unsigned *predecessor,__global int volatile *semaphore)
 {
     size_t id = get_global_id(0);
 
@@ -76,7 +76,7 @@ __kernel void dijkstra2(__global bool *maskArray, __global float *costArray, __g
     updatingCostArray[id] = costArray[id];
 }
 
-__kernel void negativeCycle(__global unsigned *vertices,__global unsigned *edges,__global float *weight, __global float *costArray,__global short *negCycle, __global int *detected)
+/*__kernel void negativeCycle(__global unsigned *vertices,__global unsigned *edges,__global float *weight, __global float *costArray,__global short *negCycle, __global int *detected)
 {
     size_t id = get_global_id(0);
     unsigned edge_offset = vertices[id];
@@ -91,7 +91,7 @@ __kernel void negativeCycle(__global unsigned *vertices,__global unsigned *edges
             *detected = 1;
         }
     }
-}
+}*/
 
 
 

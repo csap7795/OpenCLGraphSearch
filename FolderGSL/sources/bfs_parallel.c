@@ -282,3 +282,121 @@ void bfs_parallel_baseline(Graph* graph, cl_uint* out_cost, cl_uint* out_path, u
     CLU_ERRCHECK(err,"Failed finalizing OpenCL");
 }
 
+void bfs_logical_frontier_plot(Graph* graph,unsigned source, unsigned device_num)
+{
+    build_program(device_num,-1);
+
+    cl_int err;
+    cl_uint current_level = 0;
+
+    // Create Memory Buffers for Graph Data
+    cl_mem vertice_buffer = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(cl_uint) * (graph->V+1), NULL, &err);
+    CLU_ERRCHECK(err,"Failed creating vertice_buffer");
+
+    cl_mem edge_buffer = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(cl_uint) * graph->E, NULL, &err);
+    CLU_ERRCHECK(err,"Failed creating edge_buffer");
+
+    // Create Memory Buffers for reading back results
+    cl_mem frontier_vertex_buffer = clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(cl_int), NULL,&err);
+    CLU_ERRCHECK(err,"Failed creating level_buffer");
+
+    cl_mem frontier_edge_buffer = clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(cl_int) * graph->E, NULL,&err);
+    CLU_ERRCHECK(err,"Failed creating path_buffer");
+
+    // Create Memory Buffers for reading back results
+    cl_mem level_buffer = clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_uint) * graph->V, NULL,&err);
+    CLU_ERRCHECK(err,"Failed creating level_buffer");
+
+    // Create a Buffer indicating if there's no active vertex and so the execution can be stopped
+    cl_mem finished_flag = clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(cl_int), NULL,&err);
+    CLU_ERRCHECK(err,"Failed creating finished_flag");
+
+    // Copy Graph Data to their respective memory buffers
+    cl_int* zeroes = (cl_int*)calloc(graph->E,sizeof(cl_int));
+    cl_uint* uintmax = (cl_uint*)malloc(graph->V*sizeof(cl_uint));
+    for(int i = 0 ; i<graph->V;i++)
+        uintmax[i] = CL_UINT_MAX;
+
+    uintmax[source] = 0;
+    err = clEnqueueWriteBuffer(command_queue, level_buffer, CL_FALSE, 0, graph->V * sizeof(cl_uint), uintmax , 0, NULL, NULL);
+
+    err = clEnqueueWriteBuffer(command_queue, vertice_buffer, CL_FALSE, 0, (graph->V+1) * sizeof(cl_uint), graph->vertices, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(command_queue, edge_buffer, CL_FALSE, 0, graph->E * sizeof(cl_uint), graph->edges , 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(command_queue, frontier_vertex_buffer, CL_FALSE, 0, sizeof(cl_int), zeroes , 0, NULL, NULL);err = clEnqueueWriteBuffer(command_queue, edge_buffer, CL_FALSE, 0, graph->E * sizeof(cl_uint), graph->edges , 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(command_queue, frontier_edge_buffer, CL_FALSE, 0, graph->E * sizeof(cl_int), zeroes , 0, NULL, NULL);
+
+    CLU_ERRCHECK(err,"Failed copying graph data to buffers");err = clEnqueueWriteBuffer(command_queue, edge_buffer, CL_FALSE, 0, graph->E * sizeof(cl_uint), graph->edges , 0, NULL, NULL);
+
+
+    cl_kernel frontier_kernel = clCreateKernel(program,"frontier_plot",&err);
+    CLU_ERRCHECK(err,"Failed to create baseline_kernel from program");
+
+    // Set Kernel Arguments
+    cluSetKernelArguments(frontier_kernel,7,sizeof(cl_mem),(void*)&vertice_buffer,sizeof(cl_mem),(void*)&edge_buffer,sizeof(cl_mem),(void*)&frontier_vertex_buffer,sizeof(cl_mem),(void*)&frontier_edge_buffer,sizeof(cl_mem),(void*)&finished_flag,sizeof(cl_uint),&current_level,sizeof(cl_mem),&level_buffer);
+
+    // Execute Kernels
+    size_t globalSize = graph->V;
+    //CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, frontier_kernel, 1, NULL, &globalSize, NULL, 0, NULL, NULL), "Failed to enqueue 2D kernel");
+
+    //start looping the main kernel
+    cl_int finished;
+    cl_int vertex_frontier;
+    cl_int* edge_frontier = (cl_int*)malloc(sizeof(cl_int) * graph->E);
+    int unique_edges=0;
+    int all_edges=0;
+    int i;
+    for(i=0; i<graph->V;i++)
+    {
+        CLU_ERRCHECK(clEnqueueNDRangeKernel(command_queue, frontier_kernel, 1, NULL, &globalSize, NULL, 0, NULL, NULL), "Failed to enqueue 2D kernel");
+        err = clEnqueueReadBuffer(command_queue,finished_flag,CL_TRUE,0,sizeof(cl_int),&finished,0,NULL,NULL);
+        err = clEnqueueReadBuffer(command_queue,frontier_vertex_buffer,CL_TRUE,0,sizeof(cl_int),&vertex_frontier,0,NULL,NULL);
+        err = clEnqueueReadBuffer(command_queue,frontier_edge_buffer,CL_TRUE,0,sizeof(cl_int) * graph->E,edge_frontier,0,NULL,NULL);
+        for(int k = 0; k<graph->E;k++)
+        {
+            if(edge_frontier[k] > 0){
+                unique_edges++;
+                all_edges += edge_frontier[k];}
+        }
+
+        printf("Step:%d\t\tFV:%d\t\tUE:%d\t\tAE:%d\n",current_level,vertex_frontier,unique_edges,all_edges);
+
+        if(finished)
+            break;
+
+        current_level++;
+        finished = 1;
+        err = clEnqueueWriteBuffer(command_queue, finished_flag, CL_TRUE, 0, sizeof(cl_int), &finished , 0, NULL, NULL);
+        err = clEnqueueWriteBuffer(command_queue, frontier_vertex_buffer, CL_TRUE, 0, sizeof(cl_int), zeroes , 0, NULL, NULL);err = clEnqueueWriteBuffer(command_queue, edge_buffer, CL_FALSE, 0, graph->E * sizeof(cl_uint), graph->edges , 0, NULL, NULL);
+        err = clEnqueueWriteBuffer(command_queue, frontier_edge_buffer, CL_TRUE, 0, graph->E * sizeof(cl_int), zeroes , 0, NULL, NULL);
+        unique_edges = 0;
+        all_edges = 0;
+        clSetKernelArg(frontier_kernel,5,sizeof(cl_uint),&current_level);
+
+
+    }
+
+    // Wait until all queued commands finish
+    err = clFlush(command_queue);
+    err |= clFinish(command_queue);
+    CLU_ERRCHECK(err,"Error finishing command_queue");
+
+    free(zeroes);
+    free(edge_frontier);
+    free(uintmax);
+
+    //finalize
+    err = clReleaseKernel(frontier_kernel);
+    err |= clReleaseProgram(program);
+    err |= clReleaseMemObject(vertice_buffer);
+    err |= clReleaseMemObject(edge_buffer);
+    err |= clReleaseMemObject(frontier_edge_buffer);
+    err |= clReleaseMemObject(frontier_vertex_buffer);
+    err |= clReleaseMemObject(level_buffer);
+    err |= clReleaseMemObject(finished_flag);
+    err |= clReleaseCommandQueue(command_queue);
+    err |= clReleaseContext(context);
+
+    CLU_ERRCHECK(err,"Failed finalizing OpenCL");
+}
+
+

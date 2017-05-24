@@ -15,4 +15,11 @@ void bfs_parallel_workgroup(Graph* graph, cl_uint* out_cost, cl_uint* out_path,u
 // This approach works on global memory
 void bfs_parallel_baseline(Graph* graph, cl_uint* out_cost, cl_uint* out_path, unsigned source, unsigned device_num, unsigned long *time);
 
+// Gives a statistic about a graph for each bfs iteration, containing the Number of Vertices in the Frontier,
+// the number of all Edges traversed and the number of Unique Edges, i.e. how many different
+// edges were traversed. Can be used to show unnecessary work done in low-diameter graphs.
+void bfs_logical_frontier_plot(Graph* graph,unsigned source, unsigned device_num);
+
+
+
 #endif // BFS_PARALLEL_H_INCLUDED

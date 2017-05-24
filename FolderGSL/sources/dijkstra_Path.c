@@ -11,16 +11,18 @@ static cl_context context;
 static cl_command_queue command_queue;
 static cl_device_id device;
 
-static void build_kernel(size_t device_num)
+/*static void build_kernel(size_t device_num)
 {
     device = cluInitDevice(device_num,&context,&command_queue);
 
-    char* filename = "/dijkstra_path.cl";
+    char* filename = "/sssp.cl";
+    char tmp[1024];
     char cfp[1024];
     char kernel_file[1024];
     sprintf(cfp, "%s",__FILE__);
     sprintf(kernel_file,"%s%s%s",dirname(dirname(cfp)),"/kernels",filename);
-    program = cluBuildProgramFromFile(context,device,kernel_file,NULL);
+    sprintf(tmp, "-DGROUP_NUM=%d",1);
+    program = cluBuildProgramFromFile(context,device,kernel_file,tmp);
 }
 
 void dijkstra_path(Graph* graph,unsigned source,cl_float* out_cost, cl_uint* out_path, unsigned device_num, unsigned long *time)
@@ -40,7 +42,7 @@ void dijkstra_path(Graph* graph,unsigned source,cl_float* out_cost, cl_uint* out
 
     // Preprocess the data,i.e. calculate the Indices where Edges write to in the messageBuffer,
     // the Source Vertex of each edge and the number of incoming edges for each Vertex
-    dijkstra_path_preprocess(graph,messageWriteIndex,sourceVertices,inEdges,offset);
+    serial_without_optimization_preprocess(graph,messageWriteIndex,sourceVertices,inEdges,offset);
 
     //Fill messageBuffer with CL_FLT_MAX
     cl_float* messageBuffer_cost = (cl_float*) malloc(graph->E * sizeof(cl_float));
@@ -231,4 +233,4 @@ void dijkstra_path_preprocess(Graph* graph,cl_uint* messageWriteIndex,cl_uint* s
             helper[dest]++;
         }
         free(helper);
-}
+}*/

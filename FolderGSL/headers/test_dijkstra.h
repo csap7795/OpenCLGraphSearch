@@ -12,6 +12,8 @@ void dijkstra_serial(Graph* graph, cl_float* cost_array,cl_uint* path_array,unsi
 void benchmark_dijkstra(Graph* graph, unsigned source);
 unsigned long measure_time_dijkstra(Graph* graph, unsigned source, unsigned device_id);
 void dijkstra_serial(Graph* graph, cl_float* cost_array,cl_uint* path_array,unsigned source);
+unsigned long measure_time_dijkstra_cpu(Graph* graph, unsigned source);
+
 
 
 

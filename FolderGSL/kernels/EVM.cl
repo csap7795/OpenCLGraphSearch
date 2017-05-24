@@ -38,6 +38,16 @@ __kernel void sort_source_vertex(__global unsigned *sourceVertices, __global uns
     sorted[id] = oldToNew[source];
 }
 
+__kernel void inEdgesCalculation(__global unsigned *vertices,__global unsigned *edges, __global volatile unsigned *numEdges)
+{
+    size_t id = get_global_id(0);
+    for(int i = vertices[id]; i<vertices[id+1];i++)
+    {
+        unsigned dest = edges[i];
+        atomic_inc(&numEdges[dest]);
+    }
+}
+
 __kernel void inEdgesAndSourceVerticeCalculation(__global unsigned *vertices,__global unsigned *edges,__global unsigned *sourceVertices, __global volatile unsigned *numEdges)
 {
     size_t id = get_global_id(0);

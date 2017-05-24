@@ -1,4 +1,4 @@
-__kernel void calcInEdges(__global unsigned* edges, volatile __global unsigned* inEdges)
+__kernel void calcInEdges(__global unsigned* edges,__global unsigned  volatile *inEdges)
 {
     size_t id = get_global_id(0);
     unsigned writeIndex = edges[id];
@@ -19,7 +19,7 @@ __kernel void transpose(__global unsigned *vertices, __global unsigned *edges, _
     }
 }
 
-__kernel void calcSrcDestVertices(__global unsigned *vertices,__global unsigned *edges, __global unsigned *src, __global unsigned *dest, __global unsigned *inEdges)
+/*__kernel void calcSrcDestVertices(__global unsigned *vertices,__global unsigned *edges, __global unsigned *src, __global unsigned *dest, __global unsigned *inEdges)
 {
     size_t id = get_global_id(0);
     unsigned edge_offset = vertices[id];
@@ -40,4 +40,4 @@ __kernel void edge_transpose(volatile __global unsigned *offset, __global unsign
     unsigned index = atomic_inc(&offset[offset_index]);
     newEdges[index] = dest[id];
     newWeight[index] = weight[id];
-}
+}*/

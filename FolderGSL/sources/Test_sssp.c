@@ -6,10 +6,9 @@
 #include <time.h>
 #include <stdbool.h>
 #include <benchmark_utils.h>
-#include <dikstra_path.h>
 #include <test_dijkstra.h>
 
-#define REPEATS 10
+#define REPEATS 1
 #define CSVFILENAME_SSSP "sssp.csv"
 #define CSVFILENAME_PRECALC "pre_sssp.csv"
 #define CSVFILENAME_DIJKSTRA "dijkstra_path.csv"
@@ -56,33 +55,33 @@ void benchmark_sssp(Graph* graph, unsigned source)
     }
 }
 
-void measure_time_sssp(Graph* graph, unsigned source, unsigned device_id, unsigned long* total_time, unsigned long* precalc_time)
+void measure_time_sssp_opt(Graph* graph, unsigned source, unsigned device_id, unsigned long* total_time, unsigned long* precalc_time)
 {
     //create result variables
     cl_float* out_cost_parallel = (cl_float*)malloc(sizeof(cl_float) * graph->V);
     cl_uint* out_path_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
 
-    sssp(graph,source,out_cost_parallel,out_path_parallel,device_id,total_time,precalc_time);
+    sssp_opt(graph,source,out_cost_parallel,out_path_parallel,device_id,total_time,precalc_time);
 
     free(out_path_parallel);
     free(out_cost_parallel);
 }
 
-unsigned long measure_time_dijkstra_path(Graph* graph, unsigned source, unsigned device_id)
+unsigned long measure_time_sssp_normal(Graph* graph, unsigned source, unsigned device_id)
 {
     //create result variables
     cl_float* out_cost_parallel = (cl_float*)malloc(sizeof(cl_float) * graph->V);
     cl_uint* out_path_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
     unsigned long time;
 
-    dijkstra_path(graph,source,out_cost_parallel,out_path_parallel,device_id,&time);
+    sssp_normal(graph,source,out_cost_parallel,out_path_parallel,device_id,&time);
 
     free(out_cost_parallel);
     free(out_path_parallel);
     return time;
 }
 
-void verify_dijkstra_path_parallel(Graph* graph, unsigned source)
+void verify_sssp_normal_parallel(Graph* graph, unsigned source)
 {
     //create result variables
     cl_float* out_cost_parallel = (cl_float*)malloc(sizeof(cl_float) * graph->V);
@@ -95,7 +94,7 @@ void verify_dijkstra_path_parallel(Graph* graph, unsigned source)
         printf("%s\n",cluGetDeviceDescription(tmp,i));
         bool result = true;
         for(int j = 0; j<REPEATS;j++){
-            dijkstra_path(graph,source,out_cost_parallel,out_path_parallel,i,NULL);
+            sssp_normal(graph,source,out_cost_parallel,out_path_parallel,i,NULL);
             result &= verify_dijkstra_path(graph,out_cost_parallel,out_path_parallel,source);
         }
         printf("Parallel and serial execution produce same results?\t");
@@ -105,7 +104,7 @@ void verify_dijkstra_path_parallel(Graph* graph, unsigned source)
     free(out_cost_parallel);
 }
 
-void verify_sssp_parallel(Graph* graph,unsigned source)
+void verify_sssp_opt_parallel(Graph* graph,unsigned source)
 {
     //create result variables
     cl_float* out_cost_parallel = (cl_float*)malloc(sizeof(cl_float) * graph->V);
@@ -118,7 +117,7 @@ void verify_sssp_parallel(Graph* graph,unsigned source)
         printf("%s\n",cluGetDeviceDescription(tmp,i));
         bool result = true;
         for(int j = 0; j<REPEATS;j++){
-            sssp(graph,source,out_cost_parallel,out_path_parallel,i,NULL,NULL);
+            sssp_opt(graph,source,out_cost_parallel,out_path_parallel,i,NULL,NULL);
             result &= verify_sssp(graph,out_cost_parallel,out_path_parallel,source);
         }
         printf("Parallel and serial execution produce same results? ");

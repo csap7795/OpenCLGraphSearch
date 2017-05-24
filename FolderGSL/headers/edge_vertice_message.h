@@ -4,6 +4,8 @@
 #include <graph.h>
 #include <CL/cl.h>
 
+#define GROUP_NUM 32
+
 // Preprocesses all necessary data for using this framework on the GPU
 void preprocessing_parallel_gpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted,cl_uint* numEdgesSorted, cl_uint* oldToNew,cl_uint* newToOld, cl_uint* offset,cl_uint* messageBufferSize,size_t device_num);
 
@@ -26,6 +28,10 @@ void CalculateWriteIndices(Graph* graph, cl_uint *oldToNew, cl_uint *messageWrit
 
 // This function sorts the Source Vertices, i.e. saves the sourcevertices of each edge under their new alias
 void sortSourceVertices(Graph* graph, cl_uint* sourceVertices, cl_uint* oldToNew,cl_uint* sourceVerticesSorted);
+
+// Calculates all necessary data for the edge-vertice-message model serial without making optimizations like
+// sorting the messagebuffer or remap it's data layout
+void serial_without_optimization_preprocess(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVertices, cl_uint* inEdges, cl_uint* offset);
 
 
 

@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <libgen.h>
 
-#define GROUP_NUM 32
 #define BUCKET_NUM 1000
 
 static cl_program program;
@@ -105,6 +104,47 @@ void preprocessing_parallel_gpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint*
     clReleaseContext(context);
 }
 
+/*void preprocessing_parallel_gpu_alternative(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted,cl_uint* numEdgesSorted, cl_uint* oldToNew,cl_uint* newToOld, cl_uint* offset,cl_uint* messageBufferSize,size_t device_num)
+{
+    // Build the kernel
+    unsigned long start_time = time_ms();
+    build_kernel(device_num,GROUP_NUM);
+    printf("Function: Building Kernel...\t%lu\n",time_ms()-start_time);
+
+    //Allocate necessary data
+    cl_uint* numEdges = (cl_uint*) calloc(graph->V,sizeof(cl_uint));
+    cl_uint* sourceVertices = (cl_uint*) malloc(graph->E * sizeof(cl_uint));
+
+    // calculate sourceVertices & numEdges
+    start_time = time_ms();
+    calculateNumEdgesAndSourceVertices(graph,sourceVertices,numEdges);
+    printf("Function: calculateNumEdges...\t%lu\n",time_ms()-start_time);
+
+    // sort MessageBuffer
+    start_time = time_ms();
+    messageBufferSort_parallel(graph,numEdges,numEdgesSorted,oldToNew,newToOld,offset);
+    printf("Function: sortmessagebuffer...\t%lu\n",time_ms()-start_time);
+
+    //remap MessageBuffer
+    start_time = time_ms();
+    remapMassageBuffer_parallel(graph,messageWriteIndex,numEdgesSorted,offset,oldToNew,messageBufferSize);
+    printf("Function: remapmassagebuffer_parallel...\t%lu\n",time_ms()-start_time);
+
+    // save new aliases
+    start_time = time_ms();
+    sortSourceVertices(graph,sourceVertices,oldToNew,sourceVerticesSorted);
+    printf("Function: sortsourcevertices...\t%lu\n",time_ms()-start_time);
+
+    //Free Resources
+    free(numEdges);
+    free(sourceVertices);
+
+    //Clean Up
+    clReleaseProgram(program);
+    clReleaseCommandQueue(command_queue);
+    clReleaseContext(context);
+}*/
+
 void calculateNumEdgesAndSourceVertices(Graph* graph, cl_uint* sourceVertices, cl_uint* numEdges)
 {
     cl_int err;
@@ -156,7 +196,6 @@ void calculateNumEdgesAndSourceVertices(Graph* graph, cl_uint* sourceVertices, c
 
     CLU_ERRCHECK(err, "Failed during finalizing OpenCL in function calculateNumEdgesAndSourceVertices()");
 }
-
 void messageBufferSort_parallel(Graph* graph, cl_uint* inEdges, cl_uint* inEdgesSorted, cl_uint* oldToNew,cl_uint* newToOld, cl_uint* offset)
 {
 
@@ -428,6 +467,25 @@ void serialCalculationofWriteIndices(Graph* graph, cl_uint* oldToNew, cl_uint* o
     free(helper);
 }
 
+/*void serialCalculationofWriteIndices_alt(Graph* graph, cl_uint* oldToNew, cl_uint* newToOld, cl_uint* sourceVerticesSorted, cl_uint* offset, cl_uint* messageWriteIndex)
+{
+    // Create a helper object which saves the amount of all previously incoming edges for a given destination vertex
+    unsigned* helper = (unsigned*)calloc(graph->V,sizeof(unsigned));
+
+    // Loop over all edges, and calculate the writePostions
+    for(int i = 0; i<graph->E;i++)
+    {
+        cl_uint old_dest = graph->edges[i];
+        cl_uint new_dest = oldToNew[old_dest];
+        cl_uint group_id = new_dest/GROUP_NUM;
+        cl_uint inner_id = new_dest%GROUP_NUM;
+        messageWriteIndex[i] = offset[group_id] + inner_id + GROUP_NUM*(helper[old_dest]++);//atomic_inc(&helper[old_source])*GROUP_NUM);
+        sourceVerticesSorted[i] = newToOld[]
+    }
+
+    //Free allocated data
+    free(helper);
+}*/
 
 
 void sortSourceVertices(Graph* graph, cl_uint* sourceVertices, cl_uint* oldToNew,cl_uint* sourceVerticesSorted)
@@ -494,4 +552,33 @@ void CalculateWriteIndices(Graph* graph, cl_uint *oldToNew, cl_uint *messageWrit
         helper[old_source]++;
     }
     free(helper);
+}
+
+void serial_without_optimization_preprocess(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVertices, cl_uint* inEdges, cl_uint* offset)
+{
+        // Fill sourceVertice array and numEdges which is the number of every incoming edges for every vertice
+        for(int i = 0; i<graph->V;i++)
+        {
+            for(int j = graph->vertices[i]; j<graph->vertices[i+1];j++)
+            {
+                sourceVertices[j] = i;
+                inEdges[graph->edges[j]]++;
+            }
+        }
+
+        //Calculate offsets, scan over inEdges
+        offset[0] = 0;
+        for(int i=0; i<graph->V-1;i++)
+            offset[i+1] = offset[i] + inEdges[i];
+
+
+        // Calculate the Write Indices for the Edges
+        unsigned* helper = (unsigned*)calloc(graph->V,sizeof(unsigned));
+        for(int i = 0; i<graph->E;i++)
+        {
+            cl_uint dest = graph->edges[i];
+            messageWriteIndex[i] = offset[dest] + helper[dest];
+            helper[dest]++;
+        }
+        free(helper);
 }
