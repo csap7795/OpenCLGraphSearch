@@ -76,17 +76,17 @@ void verify_dijkstra_parallel(Graph* graph, unsigned source)
     cl_float* out_cost_parallel = (cl_float*)malloc(sizeof(cl_float) * graph->V);
     cl_uint* out_path_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
 
-    printf("%s\n","test_dijkstra");
+    printf("\n%s\n","verify_dijkstra");
 
     //Iterate over available devices and calculate SSSP, verify the result
-    for(int i = 1; i<cluCountDevices();i++)
+    for(int i = 0; i<cluCountDevices();i++)
     {
-        cl_device_id tmp = cluInitDevice(i,NULL,NULL);
-        printf("%s\n",cluGetDeviceDescription(tmp,i));
+        //cl_device_id tmp = cluInitDevice(i,NULL,NULL);
+         printf("%s\n",cluDeviceTypeStringFromNum(i));
         for(int k = 0; k<REPEATS;k++){
-        dijkstra_parallel_cpu(graph,source,i,out_cost_parallel,out_path_parallel,NULL);
-        //printf("Parallel and serial execution produce same results? ");
-        printf("%s\n",verify_dijkstra(graph,out_cost_parallel,out_path_parallel,source) ? "" : "FALSE");}
+        dijkstra_parallel(graph,source,i,out_cost_parallel,out_path_parallel,NULL);
+        printf("Parallel and serial execution produce same results? ");
+        printf("%s\n",verify_dijkstra(graph,out_cost_parallel,out_path_parallel,source) ? "TRUE" : "FALSE");}
     }
 
     free(out_cost_parallel);

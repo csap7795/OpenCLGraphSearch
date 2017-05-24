@@ -86,12 +86,12 @@ void verify_sssp_normal_parallel(Graph* graph, unsigned source)
     //create result variables
     cl_float* out_cost_parallel = (cl_float*)malloc(sizeof(cl_float) * graph->V);
     cl_uint* out_path_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
-
+    printf("\n%s\n","verify_sssp_normal");
     //Iterate over available devices and calculate the topological ordering
     for(unsigned i = 0; i<cluCountDevices();i++)
     {
-        cl_device_id tmp = cluInitDevice(i,NULL,NULL);
-        printf("%s\n",cluGetDeviceDescription(tmp,i));
+        //cl_device_id tmp = cluInitDevice(i,NULL,NULL);
+         printf("%s\n",cluDeviceTypeStringFromNum(i));
         bool result = true;
         for(int j = 0; j<REPEATS;j++){
             sssp_normal(graph,source,out_cost_parallel,out_path_parallel,i,NULL);
@@ -109,12 +109,12 @@ void verify_sssp_opt_parallel(Graph* graph,unsigned source)
     //create result variables
     cl_float* out_cost_parallel = (cl_float*)malloc(sizeof(cl_float) * graph->V);
     cl_uint* out_path_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
-
+    printf("\n%s\n","verify_sssp_opt");
     //Iterate over available devices and calculate the topological ordering
     for(unsigned i = 0; i<cluCountDevices();i++)
     {
-        cl_device_id tmp = cluInitDevice(i,NULL,NULL);
-        printf("%s\n",cluGetDeviceDescription(tmp,i));
+        //cl_device_id tmp = cluInitDevice(i,NULL,NULL);
+        printf("%s\n",cluDeviceTypeStringFromNum(i));
         bool result = true;
         for(int j = 0; j<REPEATS;j++){
             sssp_opt(graph,source,out_cost_parallel,out_path_parallel,i,NULL,NULL);

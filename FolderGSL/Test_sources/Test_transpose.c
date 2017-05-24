@@ -53,13 +53,12 @@ void verify_transpose_parallel(Graph* graph)
     //create result variables
     cl_uint* out_order_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
 
-    printf("%s\n","test_topo_sort");
+    printf("\n%s\n","verify_transpose");
 
     //Iterate over available devices and calculate the transpose of the graph
     for(unsigned i = 0; i<cluCountDevices();i++)
     {
-        cl_device_id tmp = cluInitDevice(i,NULL,NULL);
-        printf("%s\n",cluGetDeviceDescription(tmp,i));
+         printf("%s\n",cluDeviceTypeStringFromNum(i));
         printf("Parallel and serial execution produce same results? %s\n",verify_transpose(graph,i) ? "TRUE" : "FALSE");
     }
 

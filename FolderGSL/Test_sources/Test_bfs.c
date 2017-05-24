@@ -77,13 +77,13 @@ void verify_bfs_baseline(Graph* graph, unsigned source)
     cl_uint* out_cost_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
     cl_uint* out_path_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
 
-    printf("%s\n","test_bfs_baseline");
+    printf("\n%s\n","verify_bfs_baseline");
 
     //Iterate over available devices and calculate APSP, verify the result
     for(int i = 0; i<cluCountDevices();i++)
     {
-        cl_device_id tmp = cluInitDevice(i,NULL,NULL);
-        printf("%s\n",cluGetDeviceDescription(tmp,i));
+        //cl_device_id tmp = cluInitDevice(i,NULL,NULL);
+         printf("%s\n",cluDeviceTypeStringFromNum(i));
         bfs_parallel_baseline(graph,out_cost_parallel,out_path_parallel,source,i,NULL);
         printf("Parallel and serial execution produce same results? ");
         printf("%s\n",verify_bfs(graph,out_cost_parallel,out_path_parallel,source) ? "TRUE" : "FALSE");
@@ -99,13 +99,15 @@ void verify_bfs_workgroup(Graph* graph, unsigned source)
     cl_uint* out_cost_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
     cl_uint* out_path_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
 
-    printf("%s\n","test_bfs_workgroup");
+    printf("\n%s\n","verify_bfs_workgroup");
 
     //Iterate over available devices and calculate APSP, verify the result
     for(int i = 0; i<cluCountDevices();i++)
     {
-        cl_device_id tmp = cluInitDevice(i,NULL,NULL);
-        printf("%s\n",cluGetDeviceDescription(tmp,i));
+        //cl_device_id tmp = cluInitDevice(i,NULL,NULL);
+        //printf("%s\n",cluGetDeviceDescription(tmp,i));
+
+        printf("%s\n",cluDeviceTypeStringFromNum(i));
         bfs_parallel_workgroup(graph,out_cost_parallel,out_path_parallel,source,i,NULL);
         printf("Parallel and serial execution produce same results? ");
         printf("%s\n",verify_bfs(graph,out_cost_parallel,out_path_parallel,source) ? "TRUE" : "FALSE");

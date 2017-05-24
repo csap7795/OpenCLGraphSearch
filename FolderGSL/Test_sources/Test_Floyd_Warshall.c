@@ -109,8 +109,8 @@ void verify_floyd_warshall_column(cl_float** mat, unsigned length)
     //Iterate over available devices and calculate APSP, verify the result
     for(int i = 0; i<cluCountDevices();i++)
     {
-        cl_device_id tmp = cluInitDevice(i,NULL,NULL);
-        printf("%s\n",cluGetDeviceDescription(tmp,i));
+        //cl_device_id tmp = cluInitDevice(i,NULL,NULL);
+         printf("%s\n",cluDeviceTypeStringFromNum(i));
         parallel_floyd_warshall_column(mat,out_cost_parallel,out_path_parallel,length,i,NULL);
         printf("Parallel and serial execution produce same results? ");
         printf("%s\n",verify_floyd_warshall(mat,out_cost_parallel,out_path_parallel,length) ? "TRUE" : "FALSE");

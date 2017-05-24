@@ -6,6 +6,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <benchmark_utils.h>
+#include <stdio.h>
 
 #define CSVFILENAME_TOPO "topo.csv"
 #define REPEATS 1
@@ -46,20 +47,40 @@ unsigned long measure_time_topo(Graph* graph, unsigned device_id)
     return time;
 }
 
-void verify_topo_sort_parallel(Graph* graph)
+void verify_topo_sort_normal_parallel(Graph* graph)
 {
     //create result variables
     cl_uint* out_order_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
 
-    printf("%s\n","test_topo_sort");
+    printf("\n%s\n","verify_topo_sort_normal");
 
     //Iterate over available devices and calculate the topological ordering
     for(unsigned i = 0; i<cluCountDevices();i++)
     {
-        cl_device_id tmp = cluInitDevice(i,NULL,NULL);
-        printf("%s\n",cluGetDeviceDescription(tmp,i));
+       // cl_device_id tmp = cluInitDevice(i,NULL,NULL);
+         printf("%s\n",cluDeviceTypeStringFromNum(i));
         printf("Parallel and serial execution produce same results? ");
         topological_order_normal(graph,out_order_parallel,i,NULL);
+        printf("%s\n",verify_topo_sort(graph,out_order_parallel) ? "TRUE" : "FALSE");
+    }
+
+    free(out_order_parallel);
+}
+
+void verify_topo_sort_opt_parallel(Graph* graph)
+{
+    //create result variables
+    cl_uint* out_order_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
+
+    printf("\n%s\n","verify_topo_sort_opt");
+
+    //Iterate over available devices and calculate the topological ordering
+    for(unsigned i = 0; i<cluCountDevices();i++)
+    {
+        //cl_device_id tmp = cluInitDevice(i,NULL,NULL);
+         printf("%s\n",cluDeviceTypeStringFromNum(i));
+        printf("Parallel and serial execution produce same results? ");
+        topological_order_opt(graph,out_order_parallel,i,NULL,NULL);
         printf("%s\n",verify_topo_sort(graph,out_order_parallel) ? "TRUE" : "FALSE");
     }
 
