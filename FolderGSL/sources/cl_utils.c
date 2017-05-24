@@ -1,5 +1,15 @@
-#include "cl_utils.h"
+#include <cl_utils.h>
+#include <sys/time.h>
+#include <cl_utils.h>
 // ------------------------------------------------------------------------------------------------ implementations
+
+unsigned long time_ms()
+{
+  struct timeval tv;
+  gettimeofday(&tv, 0);
+  return (unsigned long)tv.tv_sec*1000ul + (unsigned long)tv.tv_usec/1000ul;
+}
+
 size_t round_up_globalSize(size_t globalSize, size_t localSize)
 {
     if(globalSize%localSize == 0)
@@ -142,7 +152,7 @@ const char* cluGetDeviceDescription(const cl_device_id device, unsigned id) {
 }
 
 
- const char* cluDeviceTypeString(cl_device_type type) {
+const char* cluDeviceTypeString(cl_device_type type) {
 	switch(type){
 		case CL_DEVICE_TYPE_CPU: return "CPU";
 		case CL_DEVICE_TYPE_GPU: return "GPU";
@@ -150,6 +160,21 @@ const char* cluGetDeviceDescription(const cl_device_id device, unsigned id) {
 	}
 	return "UNKNOWN";
 }
+
+const char* cluDeviceTypeStringFromNum(size_t device_num) {
+
+    cl_device_id id = cluInitDevice(device_num,NULL,NULL);
+    cl_device_type type;
+	clGetDeviceInfo(id,CL_DEVICE_TYPE,sizeof(cl_device_type),&type,NULL);
+	clReleaseDevice(id);
+	switch(type){
+		case CL_DEVICE_TYPE_CPU: return "CPU";
+		case CL_DEVICE_TYPE_GPU: return "GPU";
+		case CL_DEVICE_TYPE_ACCELERATOR: return "ACC";
+	}
+	return "UNKNOWN";
+}
+
 
 
  const char* cluErrorString(cl_int err) {

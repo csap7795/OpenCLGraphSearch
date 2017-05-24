@@ -2,7 +2,6 @@
 #include <CL/cl.h>
 #include <stdio.h>
 #include <cl_utils.h>
-#include <benchmark_utils.h>
 #include <edge_vertice_message.h>
 #include <float.h>
 #include <unistd.h>
@@ -32,20 +31,12 @@ static void build_kernel(size_t device_num, int group_num)
 
 void sssp_opt(Graph* graph,unsigned source,cl_float* out_cost,cl_uint* out_path, unsigned device_num, unsigned long *time, unsigned long *precalc_time)
 {
-    // Determine the type of the device
-    int group_num = 1;
-    cl_device_type device_type;
-    clGetDeviceInfo(device,CL_DEVICE_TYPE,sizeof(cl_device_type),&device_type,NULL);
-    if(device_type == CL_DEVICE_TYPE_GPU)
-        group_num = GROUP_NUM;
-    // Build the kernel
-    build_kernel(device_num,group_num);
 
-    // start time calculation
+    // start time calculation for preprocessing
     unsigned long start_time = time_ms();
-
-
-  	//Allocate necessary Data
+    // Determine the type of the device
+    int group_num;
+    //Allocate necessary Data
     cl_uint* sourceVerticesSorted = (cl_uint*)malloc(graph->E * sizeof(cl_uint));
     cl_uint* messageWriteIndex = (cl_uint*) malloc(graph->E * sizeof(cl_uint));
     cl_uint* numEdgesSorted = (cl_uint*) calloc(graph->V, sizeof(cl_uint));
@@ -55,18 +46,22 @@ void sssp_opt(Graph* graph,unsigned source,cl_float* out_cost,cl_uint* out_path,
     cl_uint messageBuffersize;
     cl_int err;
 
-    //Preprocess Indices and initialize VertexBuffer, Calculate the number of incoming Edges for each vertex and set the sourceVertex of each edge
-    // It depends on the Devicetype, whether to make a data-layout-remapping or not. Both calculations are made on GPU as it's normally faster
-    if(device_type == CL_DEVICE_TYPE_GPU)
-        preprocessing_parallel_gpu(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,&messageBuffersize,0);
-    else
-        preprocessing_parallel_cpu(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,&messageBuffersize,0);
+    group_num = preprocessing_parallel(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,&messageBuffersize,device_num);
 
-    //printf("Time for Preprocessing : %lu\n",time_ms()-start_time);
+    if(group_num == 0){
+        perror("Device seems to be neither GPU or CPU");
+        exit(-1);
+    }
 
-    // If requested, save the time it took for precalculating the messageBuffer
     if(precalc_time != NULL)
         *precalc_time = time_ms()-start_time;
+
+    // Build the kernel
+    build_kernel(device_num,group_num);
+
+
+    // start actual time calculation
+    start_time = time_ms();
 
     // Allocate data for the messageBuffer and fill it with FLT_MAX
     cl_float* messageBuffer = (cl_float*) malloc(messageBuffersize * sizeof(cl_float));
@@ -75,7 +70,6 @@ void sssp_opt(Graph* graph,unsigned source,cl_float* out_cost,cl_uint* out_path,
     }
 
     // create necessary buffers
-
     cl_mem edge_buffer = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(cl_uint) * graph->E, NULL, &err);
     CLU_ERRCHECK(err,"Failed creating edgebuffer");
 
@@ -253,15 +247,16 @@ void sssp_normal(Graph* graph,unsigned source,cl_float* out_cost, cl_uint* out_p
     cl_uint* messageWriteIndex = (cl_uint*) malloc(graph->E * sizeof(cl_uint));
     cl_uint* inEdges = (cl_uint*) calloc(graph->V, sizeof(cl_uint));
     cl_uint* offset = (cl_uint*) calloc(graph->V,sizeof(cl_uint));
+    cl_uint messageBufferSize;
     cl_int err;
 
     // Preprocess the data,i.e. calculate the Indices where Edges write to in the messageBuffer,
     // the Source Vertex of each edge and the number of incoming edges for each Vertex
-    serial_without_optimization_preprocess(graph,messageWriteIndex,sourceVertices,inEdges,offset);
+    serial_without_optimization_preprocess(graph,messageWriteIndex,sourceVertices,inEdges,offset,&messageBufferSize);
 
     //Fill messageBuffer with CL_FLT_MAX
-    cl_float* messageBuffer_cost = (cl_float*) malloc(graph->E * sizeof(cl_float));
-    cl_uint* messageBuffer_path = (cl_uint*) malloc(graph->E * sizeof(cl_uint));
+    cl_float* messageBuffer_cost = (cl_float*) malloc(messageBufferSize* sizeof(cl_float));
+    cl_uint* messageBuffer_path = (cl_uint*) malloc(messageBufferSize * sizeof(cl_uint));
     for(int i = 0; i<graph->E;i++){
         messageBuffer_cost[i] = CL_FLT_MAX;
     }
@@ -274,10 +269,10 @@ void sssp_normal(Graph* graph,unsigned source,cl_float* out_cost, cl_uint* out_p
     CLU_ERRCHECK(err,"Failed creating weight_buffer");
 
     // Create Memory Buffers for Helper Objects
-    cl_mem message_buffer_cost= clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_float) * graph->E, NULL,&err);
+    cl_mem message_buffer_cost= clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_float) * messageBufferSize, NULL,&err);
     CLU_ERRCHECK(err,"Failed creating message_buffer_cost");
 
-    cl_mem message_buffer_path= clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_uint) * graph->E, NULL,&err);
+    cl_mem message_buffer_path= clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(cl_uint) * messageBufferSize, NULL,&err);
     CLU_ERRCHECK(err,"Failed creating message_buffer_path");
 
     cl_mem messageWriteIndex_buffer= clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(cl_uint) * graph->E, NULL,&err);

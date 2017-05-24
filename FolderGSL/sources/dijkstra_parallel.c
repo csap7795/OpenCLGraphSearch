@@ -5,7 +5,6 @@
 #include <limits.h>
 #include <float.h>
 #include <cl_utils.h>
-#include <benchmark_utils.h>
 #include <unistd.h>
 #include <libgen.h>
 

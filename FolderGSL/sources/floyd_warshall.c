@@ -1,5 +1,4 @@
 #include <floyd_warshall.h>
-#include <benchmark_utils.h>
 #include <matrix.h>
 
 #include <CL/cl.h>

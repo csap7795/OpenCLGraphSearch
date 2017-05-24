@@ -3,7 +3,6 @@
 #include <CL/cl.h>
 #include <cl_utils.h>
 #include <limits.h>
-#include <benchmark_utils.h>
 
 #include <stdbool.h>
 #include <stdio.h>

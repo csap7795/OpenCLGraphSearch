@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <float.h>
 #include <cl_utils.h>
-#include <benchmark_utils.h>
 #include <limits.h>
 #include <unistd.h>
 #include <libgen.h>
@@ -30,6 +29,27 @@ static void build_kernel(size_t device_num, int group_num)
     program = cluBuildProgramFromFile(context,device,kernel_file,tmp);
 }
 
+int preprocessing_parallel(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted,cl_uint* numEdgesSorted, cl_uint* oldToNew, cl_uint* newToOld, cl_uint* offset,cl_uint* messageBufferSize,size_t device_num)
+{
+    // Determine Device Type
+    cl_device_type device_type;
+    cl_device_id device_id = cluInitDevice(device_num,NULL,NULL);
+    clGetDeviceInfo(device_id,CL_DEVICE_TYPE,sizeof(cl_device_type),&device_type,NULL);
+    clReleaseDevice(device_id);
+
+    int group_num = 0;
+    if(device_type == CL_DEVICE_TYPE_GPU)
+    {
+        group_num = GROUP_NUM;
+        preprocessing_parallel_gpu(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,messageBufferSize,0);
+    }
+    else if (device_type == CL_DEVICE_TYPE_CPU)
+    {
+        group_num = 1;
+        preprocessing_parallel_cpu(graph,messageWriteIndex,sourceVerticesSorted,numEdgesSorted,oldToNew,newToOld,offset,messageBufferSize,0);
+    }
+    return group_num;
+}
 void preprocessing_parallel_cpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted,cl_uint* numEdgesSorted, cl_uint* oldToNew, cl_uint* newToOld, cl_uint* offset,cl_uint* messageBufferSize,size_t device_num)
 {
     // Build the kernel
@@ -63,6 +83,7 @@ void preprocessing_parallel_cpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint*
 }
 
 
+#define printf(...)
 void preprocessing_parallel_gpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted,cl_uint* numEdgesSorted, cl_uint* oldToNew,cl_uint* newToOld, cl_uint* offset,cl_uint* messageBufferSize,size_t device_num)
 {
     // Build the kernel
@@ -554,9 +575,11 @@ void CalculateWriteIndices(Graph* graph, cl_uint *oldToNew, cl_uint *messageWrit
     free(helper);
 }
 
-void serial_without_optimization_preprocess(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVertices, cl_uint* inEdges, cl_uint* offset)
+void serial_without_optimization_preprocess(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVertices, cl_uint* inEdges, cl_uint* offset, cl_uint *messageBufferSize)
 {
-        // Fill sourceVertice array and numEdges which is the number of every incoming edges for every vertice
+        *messageBufferSize = graph->E;
+
+        /* Fill sourceVertice array and numEdges which is the number of every incoming edges for every vertice*/
         for(int i = 0; i<graph->V;i++)
         {
             for(int j = graph->vertices[i]; j<graph->vertices[i+1];j++)

@@ -896,7 +896,7 @@ void parseFile(const char* filename, int** vertices, int** edges, int** weight, 
 
     *vertices = vertice_buffer;
 
-    /* reads input data from file for edges and stores them in edges
+    // reads input data from file for edges and stores them in edges
     fscanf(fp, "%d", edge_count);
     int* edge_buffer = (int*) realloc(*edges,*edge_count * sizeof(int));
 
@@ -907,7 +907,7 @@ void parseFile(const char* filename, int** vertices, int** edges, int** weight, 
 
     *edges = edge_buffer;
 
-    /* reads input data from file for weight and stores them in weight
+    // reads input data from file for weight and stores them in weight
     fscanf(fp, "%d",weight_count);
     int* weight_buffer = (int*) realloc(*weight,*weight_count * sizeof(int));
 
