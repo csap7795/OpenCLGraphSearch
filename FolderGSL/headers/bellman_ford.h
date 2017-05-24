@@ -9,7 +9,7 @@
 bool bellman_ford(Graph* graph, unsigned device_num, cl_float* in_cost, bool* negative_cycles);
 
 // Function which calulates all negative cycles, and saves them as a list of a list of a node
-// To use it declare a unsigned** variable/a unsigned * variable and commit the adresses as third/fourth argument
+// To use it declare a unsigned** variable/a unsigned * variable ( declare! memory will be allocated by this function )and commit the adresses as third/fourth argument
 // The first one saves the acutal cycles, the second one the number of elements for each cycle
 void createNegativeCycles(Graph* graph,unsigned device, unsigned ***cycles_out, unsigned **num_path_elements, cl_float *cost, cl_uint path);
 

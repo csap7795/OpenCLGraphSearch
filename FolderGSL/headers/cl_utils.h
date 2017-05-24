@@ -23,7 +23,13 @@ if(__err != CL_SUCCESS) { \
 	exit(-1); \
 }
 
+
+//#define printf(...)
+
 // ------------------------------------------------------------------------------------------------ declarations
+
+// Returns time in ms
+unsigned long time_ms();
 
 /* used for making globalSize a multiple of localSize */
 size_t round_up_globalSize(size_t globalSize, size_t localSize);
@@ -51,5 +57,8 @@ const char* cluGetDeviceDescription(const cl_device_id device, unsigned id);
 
 // return string representation of ocl device type "type"
 const char* cluDeviceTypeString(cl_device_type type);
+
+// return string representation of ocl device identified by device_num
+const char* cluDeviceTypeStringFromNum(size_t device_num);
 
 
