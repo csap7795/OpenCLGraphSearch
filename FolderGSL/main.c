@@ -4,25 +4,25 @@
 
 #include <graph.h>
 #include <matrix.h>
-#include <cl_utils.h>
+#include <queue.h>
 #include <CL/cl.h>
+#include <bfs_parallel.h>
 
-#include <test_floyd_warshall.h>
-#include <test_dijkstra.h>
-#include <test_bfs.h>
-#include <test_sssp.h>
-#include <test_topo_order.h>
-#include <test_dijkstra.h>
-
+#include <Test_floyd_warshall.h>
+#include <Test_dijkstra.h>
+#include <Test_bfs.h>
+#include <Test_sssp.h>
+#include <Test_topo_order.h>
+#include <Test_dijkstra.h>
+#include <Test_transpose.h>
 
 #define G_SIZE 512
 #define SIZE 1024*1024*128
 #define EPV 10
 
-void createGraphData(unsigned vertice_count, unsigned epv)
+void createGraphData(Graph* graph)
 {
-    Graph* graph = getRandomGraph(vertice_count,epv);
-    connectGraphbfs(graph);
+
     char vertice_char = ' ';
     char edge_char = ' ';
 
@@ -55,50 +55,60 @@ void createGraphData(unsigned vertice_count, unsigned epv)
     char tmp[1024];
     sprintf(tmp, "Graph/%.1f%cV-%.1f%cE.g",vertices,vertice_char,edges,edge_char);
     writeGraphToFile(tmp,graph);
-    free(graph);
+
 }
-
-
+void test_boundaries();
+#define VERTICES 800000
 int main(int argc, char* argv[])
 {
-
-    Graph* graph = getSemaphoreGraph(10000);
-    verify_dijkstra_parallel(graph,0);
-
-
-    /*if(argc != 2)
+    if(argc != 2)
     {   printf("To few Arguments\n");
         return 0;
     }
 
     const char* filename = argv[1];
 
-    srand(time(NULL));
+    //srand(time(NULL));
     Graph* graph = readGraphFromFile(filename);
     unsigned source = 0;
-	printf("%u",graph->V);
-    if(graph->V <=0)
+	//printf("%u",graph->V);
+    if(graph->V <1000)
     {
         cl_float** mat = GraphToMatrix(graph);
         benchmark_floyd_warshall(mat,graph->V,graph->E);
+        if(graph->V<=512)
+        {
+            verify_floyd_warshall_row(mat, graph->V);
+            verify_floyd_warshall_column(mat, graph->V);
+            verify_floyd_warshall_workgroup(mat, graph->V);
+        }
         freeFloatMatrix(mat,graph->V);
     }
-
     else
     {
-        //benchmark_bfs(graph,source);
-        //benchmark_dijkstra(graph,source);
-        //verify_sssp_parallel(graph,source);
-        verify_dijkstra_parallel(graph,source);
-        //benchmark_sssp(graph,source);
-        //benchmark_transpose(graph);
-        //benchmark_topo(graph);
+
+        if (graph->V < 10000)
+        {
+            verify_bfs_baseline(graph,source);
+            verify_bfs_workgroup(graph,source);
+            verify_sssp_opt_parallel(graph,source);
+            verify_sssp_normal_parallel(graph,source);
+            verify_dijkstra_parallel(graph,source);
+            verify_topo_sort_opt_parallel(graph);
+            verify_topo_sort_normal_parallel(graph);
+            verify_transpose_parallel(graph);
+        }
+
+        /*benchmark_bfs(graph,source);
+        benchmark_dijkstra(graph,source);
+        benchmark_sssp(graph,source);
+        benchmark_topo(graph);
+        benchmark_transpose(graph);*/
+
     }
 
-    freeGraph(graph);*/
-
+    freeGraph(graph);
 
     return 0;
 }
-
 
