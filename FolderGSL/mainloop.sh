@@ -5,5 +5,5 @@ _files=Graph/*.g
 for f in $_files;
 do
 	_filename=$(basename $_files)
-	./myprog "$f" > logs/"$_filename.txt"
+	./myprog "$f" #> logs/"$_filename.txt"
 done
