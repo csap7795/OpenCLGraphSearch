@@ -23,6 +23,7 @@ void benchmark_topo(Graph* graph)
 
     for(unsigned device = 0; device < num_devices;device++)
     {
+        printf("Processing topological order for device : %u\n",device);
         long unsigned time = 0;
         for(int i = 0; i<REPEATS;i++)
         {
@@ -32,6 +33,8 @@ void benchmark_topo(Graph* graph)
         time = time/REPEATS;
 
         writeToCsv(csv_file_topo,graph->V,graph->E,device,time);
+
+        printf("Done!\n");
     }
 }
 

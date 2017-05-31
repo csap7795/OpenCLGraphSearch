@@ -237,7 +237,7 @@ bool path_matrix_equal(cl_uint** mat1, cl_uint** mat2, unsigned length)
    return true;
 }
 
-int maxUlps = 10;
+/*int maxUlps = 10;
 bool AlmostEqual2sComplement(cl_float A, cl_float B)
 {
 
@@ -263,4 +263,4 @@ bool AlmostEqual2sComplement(cl_float A, cl_float B)
 
     else
         return false;
-}
+}*/

@@ -8,6 +8,8 @@
 #include <queue.h>
 #include <alloca.h>
 
+#include <string.h>
+
 void addEdges(Graph* graph, cl_uint* src, cl_uint* dest, unsigned length, cl_float* weight)
 {
     //Calculate new indices for vertices
@@ -628,8 +630,6 @@ void printGraph(Graph* graph)
 
 }
 
-
-
 Graph* readGraphFromFile(const char* filename)
 {
     FILE *fp = fopen(filename,"r");
@@ -877,6 +877,141 @@ Graph* readInTextData(const char* filename)
     }
     free(fp);
     return graph;
+}
+
+typedef struct list_node
+{
+    unsigned num;
+    struct list_node* next;
+    float weight;
+
+}list_node;
+
+typedef struct adj_list
+{
+    list_node* head;// = NULL;
+    unsigned count;// = 0;
+}adj_list;
+
+void add_node (adj_list *list, unsigned num, float weight)
+{
+    list_node* node = (list_node*)malloc(sizeof(list_node));
+    node->num = num;
+    node->weight = weight;
+    if(list->count == 0)
+        list->head = node;
+    else
+    {
+        node->next = list->head;
+        list->head = node;
+    }
+    list->count++;
+}
+
+void freelist(adj_list *list)
+{
+    if(list->count == 1)
+        free(list->head);
+
+    if(list->count > 1)
+    {
+        list_node* tmp = list->head;
+        list->head = list->head->next;
+        free(tmp);
+        list->count--;
+        freelist(list);
+    }
+}
+
+
+//#define filename "USA-road-d.NY.gr"
+Graph* createGraphFromFile(const char* filename)
+{
+    FILE *fp = fopen(filename, "r");
+
+    adj_list* neighbours;
+
+    int vertices = 0;
+    int edges = 0;
+
+    int n = 1024;
+    char* line = (char*)malloc(sizeof(char)* n);
+
+    while(getline(&line,&n,fp) != -1)
+    {
+        if(line[0] == 'p')
+        {
+            char* pch = strtok(line," ");
+            while (pch != NULL)
+            {
+                int tmp;
+                if((tmp = atoi(pch)) != 0)
+                {
+                    if(vertices == 0)
+                        vertices = tmp;
+
+                    else
+                        edges = tmp;
+
+                }
+                pch = strtok(NULL," ");
+            }
+            neighbours = (adj_list*) malloc(sizeof(adj_list)*vertices);
+            for(int i = 0; i<vertices;i++)
+            {
+                neighbours[i].count = 0;
+                neighbours[i].head = NULL;
+            }
+
+        }
+        else if(line[0] == 'a')
+        {
+            int src;
+            int dest;
+            float weight;
+            char* pch = strtok (line," ");
+            for(int i = 0; i<3;i++)
+            {
+                pch = strtok(NULL," ");
+                if(i == 0)
+                {
+                   src = atoi(pch)-1;
+                }
+                if(i==1)
+                {
+                    dest = atoi(pch)-1;
+                }
+                if(i == 2)
+                {
+                    weight = (float)atoi(pch);
+                }
+            }
+            add_node(&neighbours[src],dest,weight);
+        }
+    }
+    fclose(fp);
+
+    Graph* graph = getEmptyGraph(vertices,edges);
+    graph->vertices[0] = 0;
+    for(int i = 0; i<vertices;i++)
+    {
+        graph->vertices[i+1] = graph->vertices[i] + neighbours[i].count;
+        list_node *tmp = neighbours[i].head;
+
+        for(int j = graph->vertices[i]; j <graph->vertices[i+1];j++)
+        {
+                graph->edges[j] = tmp->num;
+                graph->weight[j] = tmp->weight;
+                tmp = tmp->next;
+        }
+        freelist(&neighbours[i]);
+    }
+
+    free(neighbours);
+
+    return graph;
+
+
 }
 
 void parseFile(const char* filename, int** vertices, int** edges, int** weight,  int* vertice_count,  int* edge_count, int* weight_count)

@@ -31,6 +31,7 @@ void benchmark_sssp(Graph* graph, unsigned source)
 
     for(unsigned device = 0; device < num_devices;device++)
     {
+        printf("Processing sssp for device : %u\n",device);
         long unsigned time_sssp = 0;
         long unsigned time_pre_sssp = 0;
         long unsigned total_time = 0;
@@ -52,6 +53,9 @@ void benchmark_sssp(Graph* graph, unsigned source)
         writeToCsv(csv_file_sssp,graph->V,graph->E,device,time_sssp);
         writeToCsv(csv_file_precalc,graph->V,graph->E,device,time_pre_sssp);
         writeToCsv(csv_file_dijkstra_path,graph->V,graph->E,device,time_dijkstra);
+
+
+        printf("Done!\n");
     }
 }
 
@@ -87,29 +91,13 @@ void verify_sssp_normal_parallel(Graph* graph, unsigned source)
     cl_float* out_cost_parallel = (cl_float*)malloc(sizeof(cl_float) * graph->V);
     cl_uint* out_path_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
     printf("\n%s\n","verify_sssp_normal");
-    //Iterate over available devices and calculate the topological ordering
-    for(unsigned i = 0; i<cluCountDevices();i++)
-    {
-        //cl_device_id tmp = cluInitDevice(i,NULL,NULL);
-         printf("%s\n",cluDeviceTypeStringFromNum(i));
-        bool result = true;
-        for(int j = 0; j<REPEATS;j++){
-            sssp_normal(graph,source,out_cost_parallel,out_path_parallel,i,NULL);
-            result &= verify_sssp_normal(graph,out_cost_parallel,out_path_parallel,source);
-        }
-        printf("Parallel and serial execution produce same results?\t");
-        printf("%s\n", result ? "TRUE" : "FALSE");
-    }
 
-    free(out_cost_parallel);
-}
-
-void verify_sssp_opt_parallel(Graph* graph,unsigned source)
-{
     //create result variables
-    cl_float* out_cost_parallel = (cl_float*)malloc(sizeof(cl_float) * graph->V);
-    cl_uint* out_path_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
-    printf("\n%s\n","verify_sssp_opt");
+    cl_float* out_cost_serial = (cl_float*)malloc(sizeof(cl_float) * graph->V);
+    cl_uint* out_path_serial = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
+    //calculate the algorithm
+    dijkstra_serial(graph,out_cost_serial,out_path_serial,source);
+
     //Iterate over available devices and calculate the topological ordering
     for(unsigned i = 0; i<cluCountDevices();i++)
     {
@@ -117,16 +105,58 @@ void verify_sssp_opt_parallel(Graph* graph,unsigned source)
         printf("%s\n",cluDeviceTypeStringFromNum(i));
         bool result = true;
         for(int j = 0; j<REPEATS;j++){
-            sssp_opt(graph,source,out_cost_parallel,out_path_parallel,i,NULL,NULL);
-            result &= verify_sssp_opt(graph,out_cost_parallel,out_path_parallel,source);
+            sssp_normal(graph,source,out_cost_parallel,out_path_parallel,i,NULL);
+            //result &= verify_sssp_normal(graph,out_cost_parallel,out_path_parallel,source);
+            result &=  cl_float_arr_equal(out_cost_parallel,out_cost_serial,graph->V);
+            //result &=  cl_uint_arr_equal(out_path_parallel,out_path_serial,graph->V);
         }
-        printf("Parallel and serial execution produce same results? ");
+        printf("Parallel and serial execution produce same results?\t");
         printf("%s\n", result ? "TRUE" : "FALSE");
     }
 
     free(out_path_parallel);
     free(out_cost_parallel);
+
+
+    free(out_cost_serial);
+    free(out_path_serial);
 }
+
+void verify_sssp_opt_parallel(Graph* graph,unsigned source)
+{
+
+    //Iterate over available devices and calculate the topological ordering
+    for(unsigned i = cluCountDevices()-1; i>=0;i--)
+    {
+         //create result variables
+        cl_float* out_cost_parallel = (cl_float*)malloc(sizeof(cl_float) * graph->V);
+        cl_uint* out_path_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
+        printf("\n%s\n","verify_sssp_opt");
+
+        //create result variables
+        cl_float* out_cost_serial = (cl_float*)malloc(sizeof(cl_float) * graph->V);
+        cl_uint* out_path_serial = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
+        //calculate the algorithm
+        //cl_device_id tmp = cluInitDevice(i,NULL,NULL);
+        printf("%s\n",cluDeviceTypeStringFromNum(i));
+        bool result = true;
+        sssp_opt(graph,source,out_cost_parallel,out_path_parallel,i,NULL,NULL);
+        sssp_normal(graph,source,out_cost_serial,out_path_serial,i,NULL);
+        //result &= verify_sssp_opt(graph,out_cost_parallel,out_path_parallel,source);
+        result &=  cl_float_arr_equal(out_cost_parallel,out_cost_serial,graph->V);
+        //result &=  cl_uint_arr_equal(out_path_parallel,out_path_serial,graph->V);
+
+        free(out_path_parallel);
+        free(out_cost_parallel);
+
+        free(out_cost_serial);
+        free(out_path_serial);
+
+        printf("Parallel and serial execution produce same results? ");
+        printf("%s\n", result ? "TRUE" : "FALSE");
+    }
+}
+
 
 bool verify_sssp_opt(Graph* graph, cl_float *out_cost_parallel, cl_uint *out_path_parallel,unsigned source)
 {
@@ -161,6 +191,5 @@ bool verify_sssp_normal(Graph* graph, cl_float *out_cost_parallel, cl_uint *out_
         free(out_path_serial);
 
         return result;
-
 }
 

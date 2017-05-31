@@ -1,3 +1,4 @@
+#include<benchmark_utils.h>
 #include<stdlib.h>
 #include<stdio.h>
 #include <sys/stat.h>
@@ -6,6 +7,7 @@
 #include <unistd.h>
 #include <libgen.h>
 #include <sys/time.h>
+#include <assert.h>
 
 void generate_path_name_csv(const char* filename, char* pathname)
 {
@@ -105,9 +107,37 @@ bool cl_uint_arr_equal(cl_uint* arr1, cl_uint* arr2, unsigned length)
 bool cl_float_arr_equal(cl_float* arr1, cl_float* arr2, unsigned length)
 {
     for(int i = 0; i<length;i++)
-        if(arr1[i] != arr2[i])
+        if(!AlmostEqual2sComplement(arr1[i],arr2[i]))
             return false;
 
     return true;
+}
+
+int maxUlps = 10;
+bool AlmostEqual2sComplement(cl_float A, cl_float B)
+{
+
+    // Make sure maxUlps is non-negative and small enough that the
+    // default NAN won't compare as equal to anything
+    assert(maxUlps > 0 && maxUlps < 4 * 1024 * 1024);
+    int aInt = *(int*)&A;
+
+    // Make aInt lexicographically ordered as a twos-complement int
+    if (aInt < 0)
+        aInt = 0x80000000 - aInt;
+
+    // Make bInt lexicographically ordered as a twos-complement int
+    int bInt = *(int*)&B;
+    if (bInt < 0)
+        bInt = 0x80000000 - bInt;
+
+    int intDiff = abs(aInt - bInt);
+
+    if (intDiff <= maxUlps)
+
+        return true;
+
+    else
+        return false;
 }
 

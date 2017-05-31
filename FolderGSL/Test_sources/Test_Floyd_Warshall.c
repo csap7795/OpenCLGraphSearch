@@ -6,7 +6,7 @@
 #include <benchmark_utils.h>
 
 
-#define REPEATS 10
+#define REPEATS 1
 
 void benchmark_floyd_warshall(cl_float **mat, unsigned length, unsigned epv)
 {
@@ -28,6 +28,7 @@ void benchmark_floyd_warshall(cl_float **mat, unsigned length, unsigned epv)
 
     for(unsigned device = 0; device < num_devices;device++)
     {
+        printf("Processing floyd warshall for device : %u\n",device);
         long unsigned time_global = 0;
         long unsigned time_workgroup = 0;
         long unsigned time_gpu = 0;

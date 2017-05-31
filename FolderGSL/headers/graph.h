@@ -96,6 +96,9 @@ bool graph_equal(Graph* g1, Graph* g2);
 // The numbers are saved in edges
 void assignRandomNumbersNotTheSame(cl_uint *edges, cl_uint length, unsigned start_node, unsigned num_edges);
 
+
+Graph* createGraphFromFile(const char* filename);
+
 Graph* createAcyclicFromGraph(Graph* graph);
 bool checkacyclic(Graph* graph);
 Graph* removeCycles(Graph* graph);

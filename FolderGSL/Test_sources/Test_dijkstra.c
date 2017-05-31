@@ -21,24 +21,20 @@ void benchmark_dijkstra(Graph* graph, unsigned source)
     //Create CSV File for documenting results
     initCsv(csv_file_dijkstra,num_devices);
 
-    for(unsigned device = 1; device < num_devices;device++)
+    for(unsigned device = 0; device < num_devices;device++)
     {
+
+        printf("Processing dijkstra for device : %u\n",device);
         long unsigned time = 0;
-        long unsigned time_cpu = 0;
         for(int i = 0; i<REPEATS;i++)
         {
-            if(device == 1)
-                time_cpu += measure_time_dijkstra_cpu(graph,source);
-
            time += measure_time_dijkstra(graph,source,device);
         }
 
         time = time/REPEATS;
-        time_cpu = time_cpu/REPEATS;
 
         writeToCsv(csv_file_dijkstra,graph->V,graph->E,device,time);
-        if(device == 1)
-        writeToCsv(csv_file_dijkstra,graph->V,graph->E,device,time_cpu);
+        printf("Done!\n");
     }
 }
 
@@ -83,11 +79,11 @@ void verify_dijkstra_parallel(Graph* graph, unsigned source)
     {
         //cl_device_id tmp = cluInitDevice(i,NULL,NULL);
          printf("%s\n",cluDeviceTypeStringFromNum(i));
-        for(int k = 0; k<REPEATS;k++){
         dijkstra_parallel(graph,source,i,out_cost_parallel,out_path_parallel,NULL);
         printf("Parallel and serial execution produce same results? ");
-        printf("%s\n",verify_dijkstra(graph,out_cost_parallel,out_path_parallel,source) ? "TRUE" : "FALSE");}
+        printf("%s\n",verify_dijkstra(graph,out_cost_parallel,out_path_parallel,source) ? "TRUE" : "FALSE");
     }
+
 
     free(out_cost_parallel);
     free(out_path_parallel);
@@ -101,9 +97,10 @@ bool verify_dijkstra(Graph* graph, cl_float *out_cost_parallel, cl_uint* out_pat
         cl_float* out_cost_serial = (cl_float*)malloc(sizeof(cl_float) * graph->V);
         cl_uint* out_path_serial = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
         //calculate the algorithm
-        dijkstra_serial(graph,out_cost_serial,out_path_serial,source);
-        bool result =  cl_float_arr_equal(out_cost_parallel,out_cost_serial,graph->V);
-        result &=  cl_uint_arr_equal(out_path_parallel,out_path_serial,graph->V);
+        sssp_normal(graph,source,out_cost_serial,out_path_serial,1,NULL);
+        //dijkstra_serial(graph,out_cost_serial,out_path_serial,source);
+        bool result = cl_float_arr_equal(out_cost_parallel,out_cost_serial,graph->V);
+        //result &=  cl_uint_arr_equal(out_path_parallel,out_path_serial,graph->V);
 
         free(out_cost_serial);
         free(out_path_serial);

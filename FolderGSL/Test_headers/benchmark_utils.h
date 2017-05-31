@@ -1,6 +1,11 @@
 #ifndef BENCHMARK_UTILS_H_INCLUDED
 #define BENCHMARK_UTILS_H_INCLUDED
 
+#include <stdbool.h>
+#include <CL/cl.h>
+
+// Checks if 2 float values are nearly the same
+bool AlmostEqual2sComplement(cl_float A, cl_float B);
 
 // Function to check if to arrays of size length and type cl_uint are identical, i.e. arr1[i][j] equals arr2[i][j] for i,j > 0
 bool cl_uint_arr_equal(cl_uint* arr1, cl_uint* arr2, unsigned length);
