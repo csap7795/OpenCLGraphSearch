@@ -8,7 +8,7 @@
 #include <benchmark_utils.h>
 #include <Test_dijkstra.h>
 
-#define REPEATS 1
+#define REPEATS 10
 #define CSVFILENAME_SSSP "sssp.csv"
 #define CSVFILENAME_PRECALC "pre_sssp.csv"
 #define CSVFILENAME_DIJKSTRA "dijkstra_path.csv"
