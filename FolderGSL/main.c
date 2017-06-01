@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
     Graph* graph = readGraphFromFile(filename);
     unsigned source = 0;
 
-    printf("Diameter of Graph: %u",bfs_diameter(graph,source));
+    printf("Diameter of Graph: %u\n",bfs_diameter(graph,source));
 
 	//printf("%u",graph->V);
     if(graph->V <1000)
@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
 
         if (graph->V < 10000)
         {
-            verify_bfs_baseline(graph,source);
+            //verify_bfs_baseline(graph,source);
             /*verify_bfs_workgroup(graph,source);
             verify_sssp_opt_parallel(graph,source);
             verify_sssp_normal_parallel(graph,source);
@@ -106,7 +106,8 @@ int main(int argc, char* argv[])
 
         //benchmark_bfs(graph,source);
         //benchmark_dijkstra(graph,source);
-        benchmark_sssp(graph,source);
+         //   verify_bfs_baseline(graph,source);
+       // benchmark_sssp(graph,source);
         //benchmark_topo(graph);
         //benchmark_transpose(graph);*/
 

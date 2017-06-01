@@ -286,13 +286,18 @@ void bfs_parallel_baseline(Graph* graph, cl_uint* out_cost, cl_uint* out_path, u
 unsigned bfs_diameter(Graph* graph, unsigned source)
 {
     cl_uint *out_cost = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
-    bfs_parallel_baseline(graph,out_cost,NULL,source,0,NULL);
+    bfs_parallel_baseline(graph,out_cost,NULL,source,1,NULL);
     cl_uint max = 0;
+    bool connected = true;
     for(int i = 0; i<graph->V;i++)
     {
-        if(out_cost[i]>max && out_cost[i] != CL_UINT_MAX)
+        if(connected && out_cost[i] == CL_UINT_MAX)
+            connected = false;
+        else if(out_cost[i]>max)
             max = out_cost[i];
     }
+    if(!connected)
+        printf("Graph ist nicht zusammenhängend\n");
     free(out_cost);
     return (unsigned)max;
 }
