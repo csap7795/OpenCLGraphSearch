@@ -8,7 +8,7 @@
 #include <benchmark_utils.h>
 
 #define CSVFILENAME_TOPO "transpose.csv"
-#define REPEATS 1
+#define REPEATS 10
 
 unsigned long measure_time_transpose(Graph* graph, unsigned device_id);
 

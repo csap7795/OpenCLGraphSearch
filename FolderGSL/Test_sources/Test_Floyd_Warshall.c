@@ -6,7 +6,7 @@
 #include <benchmark_utils.h>
 
 
-#define REPEATS 1
+#define REPEATS 10
 
 void benchmark_floyd_warshall(cl_float **mat, unsigned length, unsigned epv)
 {
