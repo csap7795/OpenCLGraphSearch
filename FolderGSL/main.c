@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
         benchmark_bfs(graph,source);
         benchmark_dijkstra(graph,source);
         benchmark_sssp(graph,source);
-        benchmark_topo(graph);
+        //benchmark_topo(graph);
         benchmark_transpose(graph);
     }
 
