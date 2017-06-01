@@ -20,6 +20,9 @@ void bfs_parallel_baseline(Graph* graph, cl_uint* out_cost, cl_uint* out_path, u
 // edges were traversed. Can be used to show unnecessary work done in low-diameter graphs.
 void bfs_logical_frontier_plot(Graph* graph,unsigned source, unsigned device_num);
 
+// Calculates the Diameter of a graph
+unsigned bfs_diameter(Graph* graph, unsigned source);
+
 
 
 #endif // BFS_PARALLEL_H_INCLUDED
