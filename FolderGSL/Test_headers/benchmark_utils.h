@@ -13,6 +13,9 @@ bool cl_uint_arr_equal(cl_uint* arr1, cl_uint* arr2, unsigned length);
 // Function to check if to arrays of size length and type cl_float are identical, i.e. arr1[i] equals arr2[i] for all i >= 0
 bool cl_float_arr_equal(cl_float* arr1, cl_float* arr2, unsigned length);
 
+// Checks if 2 cl_float matrices contain same values
+bool float_matrix_equal(cl_float** mat1, cl_float** mat2, unsigned length);
+
 // Function to generate a pathname for the csv files
 void generate_path_name_csv(const char* filename, char* pathname);
 
