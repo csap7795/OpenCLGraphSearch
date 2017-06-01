@@ -85,7 +85,7 @@ void bfs_parallel_workgroup(Graph* graph, cl_uint* out_cost, cl_uint* out_path,u
                                     break;
         case CL_DEVICE_TYPE_CPU :   localSize = W_SZ_CPU;
                                     total = round_up_globalSize(graph->V,CHUNK_SIZE_CPU);
-                                    globalSize = total/CHUNK_SIZE_GPU * localSize;
+                                    globalSize = total/CHUNK_SIZE_CPU * localSize;
                                     chunkSize = CHUNK_SIZE_CPU;
                                     break;
         default            :   perror("Device Type is neither CPU nor GPU\n");	exit(-1);

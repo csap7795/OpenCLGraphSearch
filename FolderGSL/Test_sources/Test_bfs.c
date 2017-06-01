@@ -31,9 +31,8 @@ void benchmark_bfs(Graph* graph, unsigned source)
         printf("Processing breadth first search for device : %u\n",device);
         for(int i = 0; i<REPEATS;i++)
         {
-           time_baseline += measure_time_bfs_baseline(graph,source,device);
-
-            //time_workgroup += measure_time_bfs_workgroup(graph,source,device);
+            time_baseline += measure_time_bfs_baseline(graph,source,device);
+            time_workgroup += measure_time_bfs_workgroup(graph,source,device);
         }
 
         time_baseline = time_baseline/REPEATS;
