@@ -91,26 +91,11 @@ int main(int argc, char* argv[])
     }
     else
     {
-
-        if (graph->V < 10000)
-        {
-            //verify_bfs_baseline(graph,source);
-            /*verify_bfs_workgroup(graph,source);
-            verify_sssp_opt_parallel(graph,source);
-            verify_sssp_normal_parallel(graph,source);
-            verify_dijkstra_parallel(graph,source);
-            verify_topo_sort_opt_parallel(graph);
-            verify_topo_sort_normal_parallel(graph);
-            verify_transpose_parallel(graph);*/
-        }
-
-        //benchmark_bfs(graph,source);
-        //benchmark_dijkstra(graph,source);
-         //   verify_bfs_baseline(graph,source);
-       // benchmark_sssp(graph,source);
-        //benchmark_topo(graph);
-        //benchmark_transpose(graph);*/
-
+        benchmark_bfs(graph,source);
+        benchmark_dijkstra(graph,source);
+        benchmark_sssp(graph,source);
+        benchmark_topo(graph);
+        benchmark_transpose(graph);
     }
 
     freeGraph(graph);
