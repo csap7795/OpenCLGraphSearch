@@ -24,7 +24,7 @@ void benchmark_bfs(Graph* graph, unsigned source)
     initCsv(csv_file_workgroup,num_devices);
     initCsv(csv_file_baseline,num_devices);
 
-    for(unsigned device = 1; device < num_devices;device++)
+    for(unsigned device = 0; device < num_devices;device++)
     {
         long unsigned time_baseline = 0;
         long unsigned time_workgroup = 0;
