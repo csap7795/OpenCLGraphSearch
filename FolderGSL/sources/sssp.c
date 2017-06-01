@@ -61,7 +61,7 @@ void sssp_opt(Graph* graph,unsigned source,cl_float* out_cost,cl_uint* out_path,
 
 
     // start actual time calculation
-    start_time = time_ms();
+    //start_time = time_ms();
 
     // Allocate data for the messageBuffer and fill it with FLT_MAX
     cl_float* messageBuffer = (cl_float*) malloc(messageBuffersize * sizeof(cl_float));
