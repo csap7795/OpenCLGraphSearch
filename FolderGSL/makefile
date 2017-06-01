@@ -29,3 +29,6 @@ libGraphSearch.so: $(OBJ_FILES)
 obj/%.o: sources/%.c
 	gcc $(CFLAGS) -I"$(ROOT_DIR)$(MY_INCLUDES)" $(INCLUDES) -c -o "$(ROOT_DIR)/$@" "$(ROOT_DIR)/$<"
 
+clean:
+	rm $(TESTOBJDIR)*.o $(OBJDIR)*.o
+
