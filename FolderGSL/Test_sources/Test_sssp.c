@@ -126,7 +126,7 @@ void verify_sssp_opt_parallel(Graph* graph,unsigned source)
 {
 
     //Iterate over available devices and calculate the topological ordering
-    for(unsigned i = cluCountDevices()-1; i>=0;i--)
+    for(unsigned i = 0; i < cluCountDevices();i++)
     {
          //create result variables
         cl_float* out_cost_parallel = (cl_float*)malloc(sizeof(cl_float) * graph->V);
