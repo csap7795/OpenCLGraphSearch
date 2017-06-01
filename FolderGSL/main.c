@@ -68,9 +68,14 @@ int main(int argc, char* argv[])
 
     const char* filename = argv[1];
 
+    printf("Processing Graph %s\n",filename);
+
     //srand(time(NULL));
     Graph* graph = readGraphFromFile(filename);
     unsigned source = 0;
+
+    printf("Diameter of Graph: %u",bfs_diameter(graph,source));
+
 	//printf("%u",graph->V);
     if(graph->V <1000)
     {

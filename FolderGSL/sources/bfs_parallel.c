@@ -157,7 +157,8 @@ void bfs_parallel_workgroup(Graph* graph, cl_uint* out_cost, cl_uint* out_path,u
 
     // Read back the results
     err = clEnqueueReadBuffer(command_queue,level_buffer,CL_FALSE,0,sizeof(cl_uint) * graph->V,out_cost,0,NULL,NULL);
-    err |= clEnqueueReadBuffer(command_queue,path_buffer,CL_FALSE,0,sizeof(cl_uint) * graph->V,out_path,0,NULL,NULL); CLU_ERRCHECK(err,"Error reading back results");
+    if(out_path != NULL)
+        err |= clEnqueueReadBuffer(command_queue,path_buffer,CL_FALSE,0,sizeof(cl_uint) * graph->V,out_path,0,NULL,NULL); CLU_ERRCHECK(err,"Error reading back results");
     CLU_ERRCHECK(err,"Error reading back results");
 
     err = clFlush(command_queue);
@@ -254,7 +255,8 @@ void bfs_parallel_baseline(Graph* graph, cl_uint* out_cost, cl_uint* out_path, u
 
     // Read out data from the buffers
     err = clEnqueueReadBuffer(command_queue,level_buffer,CL_FALSE,0,sizeof(cl_uint) * graph->V,out_cost,0,NULL,NULL);
-    err |= clEnqueueReadBuffer(command_queue,path_buffer,CL_FALSE,0,sizeof(cl_uint) * graph->V,out_path,0,NULL,NULL);
+    if(out_path != NULL)
+        err |= clEnqueueReadBuffer(command_queue,path_buffer,CL_FALSE,0,sizeof(cl_uint) * graph->V,out_path,0,NULL,NULL);
     CLU_ERRCHECK(err,"Error reading back results");
 
     // Wait until all queued commands finish
@@ -279,6 +281,20 @@ void bfs_parallel_baseline(Graph* graph, cl_uint* out_cost, cl_uint* out_path, u
     err |= clReleaseContext(context);
 
     CLU_ERRCHECK(err,"Failed finalizing OpenCL");
+}
+
+unsigned bfs_diameter(Graph* graph, unsigned source)
+{
+    cl_uint *out_cost = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
+    bfs_parallel_baseline(graph,out_cost,NULL,source,0,NULL);
+    cl_uint max = 0;
+    for(int i = 0; i<graph->V;i++)
+    {
+        if(out_cost[i]>max && out_cost[i] != CL_UINT_MAX)
+            max = out_cost[i];
+    }
+    free(out_cost);
+    return (unsigned)max;
 }
 
 void bfs_logical_frontier_plot(Graph* graph,unsigned source, unsigned device_num)
