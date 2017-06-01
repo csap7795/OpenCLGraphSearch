@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #define CSVFILENAME_TOPO "topo.csv"
+#define CSVFILENAME_TOPO_OPT "topo_opt.csv"
 #define REPEATS 1
 
 void benchmark_topo(Graph* graph)
@@ -16,29 +17,46 @@ void benchmark_topo(Graph* graph)
     // Create path to the kernel file
     char csv_file_topo[1024];
     generate_path_name_csv(CSVFILENAME_TOPO,csv_file_topo);
+    char csv_file_topo_opt[1024];
+    generate_path_name_csv(CSVFILENAME_TOPO_OPT,csv_file_topo_opt);
     unsigned num_devices = cluCountDevices();
 
     //Create CSV File for documenting results
     initCsv(csv_file_topo,num_devices);
+    initCsv(csv_file_topo_opt,num_devices);
 
     for(unsigned device = 0; device < num_devices;device++)
     {
         printf("Processing topological order for device : %u\n",device);
         long unsigned time = 0;
+        long unsigned time_opt = 0;
         for(int i = 0; i<REPEATS;i++)
         {
-           time += measure_time_topo(graph,device);
+           time += measure_time_topo_normal(graph,device);
+           time_opt += measure_time_topo_opt(graph,device);
         }
 
         time = time/REPEATS;
+        time_opt = time_opt/REPEATS;
 
         writeToCsv(csv_file_topo,graph->V,graph->E,device,time);
+        writeToCsv(csv_file_topo_opt,graph->V,graph->E,device,time_opt);
 
         printf("Done!\n");
     }
 }
+unsigned long measure_time_topo_opt(Graph* graph, unsigned device_id)
+{
+    //create result variables
+    cl_uint* out_order_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
+    unsigned long time;
 
-unsigned long measure_time_topo(Graph* graph, unsigned device_id)
+    topological_order_opt(graph,out_order_parallel,device_id,NULL,&time);
+
+    free(out_order_parallel);
+    return time;
+}
+unsigned long measure_time_topo_normal(Graph* graph, unsigned device_id)
 {
     //create result variables
     cl_uint* out_order_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);

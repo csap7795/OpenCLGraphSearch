@@ -137,6 +137,10 @@ void topological_order_normal(Graph* graph, cl_uint* out_order_parallel,unsigned
     if(time != NULL)
         *time = time_ms()-start_time;
 
+    for(int i = 0; i<graph->V;i++)
+        if(out_order_parallel[i] == CL_UINT_MAX)
+            printf("No Order exists\n");
+
     // Free allocated data
     free(sourceVerticesSorted);
     free(messageBuffer);
