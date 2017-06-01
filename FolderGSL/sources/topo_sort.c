@@ -269,8 +269,6 @@ void topological_order_opt(Graph* graph, cl_uint* out_order_parallel,unsigned de
 
     }
 
-    printf("Time for Calculating edgeVerticeMessage : \n");
-
     cl_uint* order_parallel = (cl_uint*) malloc(sizeof(cl_uint) * graph->V);
     err = clEnqueueReadBuffer(command_queue,order_buffer,CL_TRUE,0,sizeof(cl_uint) * graph->V,order_parallel,0,NULL,NULL);
 

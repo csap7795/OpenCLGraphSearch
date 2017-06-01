@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <alloca.h>
 #include <graph.h>
+//#include <benchmark_utils.h>
 
 //Returns a copy of matrix in_mat resized to the next length equaly devided by blocksize, fill new entries with CL_FLT_MAX
 cl_float** resizeFloatMatrix(cl_float** in_mat, unsigned length, unsigned blocksize)
@@ -178,7 +179,7 @@ cl_float** getTestMatrix(unsigned vertices)
     return mat;
 }
 
-bool float_matrix_equal(cl_float** mat1, cl_float** mat2, unsigned length)
+/*bool float_matrix_equal(cl_float** mat1, cl_float** mat2, unsigned length)
 {
     for(int i = 0; i<length;i++)
         for(int j = 0; j<length;j++)
@@ -188,7 +189,7 @@ bool float_matrix_equal(cl_float** mat1, cl_float** mat2, unsigned length)
         }
 
     return true;
-}
+}*/
 
 int index;
 unsigned createPath(cl_uint** path_matrix, cl_uint* path, cl_uint s, cl_uint t)

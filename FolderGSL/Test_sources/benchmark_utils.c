@@ -113,6 +113,18 @@ bool cl_float_arr_equal(cl_float* arr1, cl_float* arr2, unsigned length)
     return true;
 }
 
+bool float_matrix_equal(cl_float** mat1, cl_float** mat2, unsigned length)
+{
+    for(int i = 0; i<length;i++)
+        for(int j = 0; j<length;j++)
+        {
+            if(!AlmostEqual2sComplement(mat1[i][j], mat2[i][j]))
+                return false;
+        }
+
+    return true;
+}
+
 int maxUlps = 10;
 bool AlmostEqual2sComplement(cl_float A, cl_float B)
 {

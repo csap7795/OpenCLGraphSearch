@@ -173,8 +173,8 @@ void sssp_opt(Graph* graph,unsigned source,cl_float* out_cost,cl_uint* out_path,
         err = clEnqueueWriteBuffer(command_queue, finished_flag, CL_TRUE, 0, sizeof(cl_bool), &finished , 0, NULL, NULL);
 
     }
-    printf("Function: kernel edge\t%lu ms\n",total_time_edge/1000000);
-    printf("Function: kernel vertex\t%lu ms\n",total_time_vertex/1000000);
+    //printf("Function: kernel edge\t%lu ms\n",total_time_edge/1000000);
+    //printf("Function: kernel vertex\t%lu ms\n",total_time_vertex/1000000);
     //printf("Time for Calculating edgeVerticeMessage : %lu\n",total_time);
 
     // Read back the data of the cost and path buffer
@@ -365,8 +365,8 @@ void sssp_normal(Graph* graph,unsigned source,cl_float* out_cost, cl_uint* out_p
         err = clEnqueueWriteBuffer(command_queue, finished_flag, CL_TRUE, 0, sizeof(cl_bool), &finished , 0, NULL, NULL);
 
     }
-    printf("Function: dijkstra path kernel edge\t%.2f ms\n",total_time_edge/1000000);
-    printf("Function: ijkstra path kernel vertex\t%.2f ms\n",total_time_vertex/1000000);
+    //printf("Function: dijkstra path kernel edge\t%.2f ms\n",total_time_edge/1000000);
+    //printf("Function: ijkstra path kernel vertex\t%.2f ms\n",total_time_vertex/1000000);
 
     // Read out the results
     err = clEnqueueReadBuffer(command_queue,cost_buffer,CL_FALSE,0,sizeof(cl_float) * graph->V,out_cost,0,NULL,NULL);
