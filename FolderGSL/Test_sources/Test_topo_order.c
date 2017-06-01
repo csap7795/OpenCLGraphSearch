@@ -51,7 +51,7 @@ unsigned long measure_time_topo_opt(Graph* graph, unsigned device_id)
     cl_uint* out_order_parallel = (cl_uint*)malloc(sizeof(cl_uint) * graph->V);
     unsigned long time;
 
-    topological_order_opt(graph,out_order_parallel,device_id,NULL,&time);
+    topological_order_opt(graph,out_order_parallel,device_id,&time,NULL);
 
     free(out_order_parallel);
     return time;
