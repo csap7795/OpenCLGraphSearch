@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <benchmark_utils.h>
 
-#define REPEATS 1
+#define REPEATS 10
 
 #define CSVFILENAME_WORKGROUP "bfs_workgroup.csv"
 #define CSVFILENAME_BASELINE "bfs_baseline.csv"
@@ -32,7 +32,7 @@ void benchmark_bfs(Graph* graph, unsigned source)
         for(int i = 0; i<REPEATS;i++)
         {
            time_baseline += measure_time_bfs_baseline(graph,source,device);
-           //time_workgroup += measure_time_bfs_workgroup(graph,source,device);
+            time_workgroup += measure_time_bfs_workgroup(graph,source,device);
         }
 
         time_baseline = time_baseline/REPEATS;
