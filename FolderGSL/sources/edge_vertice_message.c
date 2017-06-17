@@ -8,8 +8,6 @@
 #include <unistd.h>
 #include <libgen.h>
 
-#define BUCKET_NUM 1000
-
 static cl_program program;
 static cl_context context;
 static cl_command_queue command_queue;
@@ -50,6 +48,23 @@ int preprocessing_parallel(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sour
     }
     return group_num;
 }
+
+
+void printarray(cl_uint* arr, unsigned length, const char* name)
+{
+    printf("%s\n",name);
+    for(int i = 0; i<length;i++)
+    {
+        printf("%d\t",i);
+    }
+    printf("\n");
+    for(int i = 0; i<length;i++)
+    {
+        printf("%u\t",arr[i]);
+    }
+    printf("\n\n");
+}
+
 void preprocessing_parallel_cpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted,cl_uint* numEdgesSorted, cl_uint* oldToNew, cl_uint* newToOld, cl_uint* offset,cl_uint* messageBufferSize,size_t device_num)
 {
     // Build the kernel
@@ -62,14 +77,28 @@ void preprocessing_parallel_cpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint*
     // calculate sourceVertices & numEdges
     calculateNumEdgesAndSourceVertices(graph,sourceVertices,numEdges);
 
+
+    printarray(numEdges,graph->V,"NumEdges");
+    printarray(sourceVertices,graph->E,"sourceVertices");
+
     // sort MessageBuffer
     messageBufferSort_parallel(graph,numEdges,numEdgesSorted,oldToNew,newToOld,offset);
+
+
+    printarray(oldToNew,graph->V,"OLDTONEW");
+    printarray(numEdgesSorted,graph->V,"NumEdgesSorted");
 
     //calculate the write positions for each edge in the messagebuffer
     CalculateWriteIndices(graph,oldToNew,messageWriteIndex,offset,numEdgesSorted, messageBufferSize);
 
+
+    printarray(offset,graph->V,"Offset");
+    printarray(messageWriteIndex,graph->E,"MessageWriteIndex");
+
     // save new aliases
     sortSourceVertices(graph,sourceVertices,oldToNew,sourceVerticesSorted);
+
+    printarray(sourceVerticesSorted,graph->E,"SourceVerticesSorted");
 
     //Free Resources
     free(numEdges);
@@ -81,7 +110,6 @@ void preprocessing_parallel_cpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint*
     clReleaseContext(context);
 
 }
-
 
 #define printf(...)
 void preprocessing_parallel_gpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted,cl_uint* numEdgesSorted, cl_uint* oldToNew,cl_uint* newToOld, cl_uint* offset,cl_uint* messageBufferSize,size_t device_num)
@@ -100,21 +128,31 @@ void preprocessing_parallel_gpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint*
     calculateNumEdgesAndSourceVertices(graph,sourceVertices,numEdges);
     printf("Function: calculateNumEdges...\t%lu\n",time_ms()-start_time);
 
+    printarray(numEdges,graph->V,"NumEdges");
+    printarray(sourceVertices,graph->E,"sourceVertices");
+
     // sort MessageBuffer
     start_time = time_ms();
     messageBufferSort_parallel(graph,numEdges,numEdgesSorted,oldToNew,newToOld,offset);
     printf("Function: sortmessagebuffer...\t%lu\n",time_ms()-start_time);
+
+    printarray(oldToNew,graph->V,"OLDTONEW");
+    printarray(numEdgesSorted,graph->V,"NumEdgesSorted");
 
     //remap MessageBuffer
     start_time = time_ms();
     remapMassageBuffer_parallel(graph,messageWriteIndex,numEdgesSorted,offset,oldToNew,messageBufferSize);
     printf("Function: remapmassagebuffer_parallel...\t%lu\n",time_ms()-start_time);
 
+    printarray(offset,graph->V,"Offset");
+    printarray(messageWriteIndex,graph->E,"MessageWriteIndex");
+
     // save new aliases
     start_time = time_ms();
     sortSourceVertices(graph,sourceVertices,oldToNew,sourceVerticesSorted);
     printf("Function: sortsourcevertices...\t%lu\n",time_ms()-start_time);
 
+    printarray(sourceVerticesSorted,graph->E,"SourceVerticesSorted");
     //Free Resources
     free(numEdges);
     free(sourceVertices);
@@ -273,7 +311,8 @@ void messageBufferSort_parallel(Graph* graph, cl_uint* inEdges, cl_uint* inEdges
     CLU_ERRCHECK(err,"Failed to create EdgeCompute kernel from program");
 
      //Set KernelArguments
-    cl_uint bucket_num = BUCKET_NUM;
+
+    cl_uint bucket_num = (graph->V < BUCKET_NUM) ? graph->V: BUCKET_NUM;
     cluSetKernelArguments(assign_kernel,7,sizeof(cl_mem),(void*)&input_buffer,sizeof(cl_uint),(void*)&max,sizeof(cl_uint),(void*)&min,sizeof(cl_mem),(void*)&offset_buffer,sizeof(cl_uint),(void*)&bucket_num,sizeof(cl_mem),(void*)&bucket_count_buffer,sizeof(cl_mem),(void*)&bucket_index_buffer);
     cluSetKernelArguments(sort_kernel,7,sizeof(cl_mem),(void*)&input_buffer,sizeof(cl_mem),(void*)&input_sorted_buffer,sizeof(cl_mem),(void*)&offset_buffer,sizeof(cl_mem),(void*)&bucket_count_buffer,sizeof(cl_mem),(void*)&bucket_index_buffer,sizeof(cl_mem),(void*)&old_to_new_buffer,sizeof(cl_mem),(void*)&new_to_old_buffer);
 

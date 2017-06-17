@@ -91,11 +91,13 @@ int main(int argc, char* argv[])
     }
     else
     {
-        benchmark_bfs(graph,source);
-        benchmark_dijkstra(graph,source);
-        benchmark_sssp(graph,source);
+        //benchmark_bfs(graph,source);
+        //benchmark_dijkstra(graph,source);
+        //benchmark_sssp(graph,source);
         //benchmark_topo(graph);
+        //benchmark_transpose(graph);
         benchmark_transpose(graph);
+        benchmark_transpose_serial(graph);
     }
 
     freeGraph(graph);

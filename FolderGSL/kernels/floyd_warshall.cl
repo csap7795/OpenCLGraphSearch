@@ -7,6 +7,9 @@ __kernel void global_floyd_warshall(__global float* in, __global float* out, __g
 {
 	size_t x = get_global_id(0);
 	size_t y = get_global_id(1);
+    if(i == 1)
+	printf("Thread %d %d\n", x,y);
+
     out[x*width+y] = in[x*width+y];
 
     if(x != i && y != i)
@@ -26,6 +29,10 @@ __kernel void global_floyd_warshall_gpu(__global float* in, __global float* out,
 	size_t x = get_global_id(0);
 	size_t y = get_global_id(1);
     out[x+width*y] = in[x+width*y];
+
+
+    if(i == 1)
+	printf("Thread %d %d\n", x,y);
 
     if(x != i && y != i)
 	{
@@ -160,6 +167,7 @@ void calculateSDBlock(__local float (*mat)[BLOCK_SIZE],__local unsigned (*path)[
 {
     for(unsigned k = min; k < max; k++)
     {
+	// a path from lx to ly won't lead over lx
         if(lx != k%BLOCK_SIZE && ly != k%BLOCK_SIZE)
         {
             float cost = mat[lx][k%BLOCK_SIZE] + mat[k%BLOCK_SIZE][ly];//in[index1] + in[index2];
@@ -179,7 +187,7 @@ void calculate1BDependentRow(__local float (*mat)[BLOCK_SIZE],__local float(*dep
 {
     for(unsigned k = min; k<max;k++)
     {
-        float cost = dep[lx][k%BLOCK_SIZE] + mat[k%BLOCK_SIZE][ly];//in[index1] + in[index2];
+        float cost = dep[lx][k%BLOCK_SIZE] + mat[k%BLOCK_SIZE][ly];
         if(mat[lx][ly] > cost)
         {
             mat[lx][ly] = cost;
@@ -196,7 +204,7 @@ void calculate1BDependentCol(__local float (*mat)[BLOCK_SIZE],__local float (*de
 {
     for(unsigned k = min; k<max;k++)
     {
-        float cost = mat[lx][k%BLOCK_SIZE] + dep[k%BLOCK_SIZE][ly];//in[index1] + in[index2];
+        float cost = mat[lx][k%BLOCK_SIZE] + dep[k%BLOCK_SIZE][ly];
         if(mat[lx][ly] > cost)
         {
            mat[lx][ly] = cost;

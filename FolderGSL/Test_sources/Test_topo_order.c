@@ -10,7 +10,7 @@
 
 #define CSVFILENAME_TOPO "topo.csv"
 #define CSVFILENAME_TOPO_OPT "topo_opt.csv"
-#define REPEATS 1
+#define REPEATS 10
 
 void benchmark_topo(Graph* graph)
 {

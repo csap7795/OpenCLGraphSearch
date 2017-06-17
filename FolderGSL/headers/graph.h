@@ -75,6 +75,9 @@ Graph* getRandomTreeGraph(int level, int edges, unsigned edgeperVertex);
 Graph* getRandomGraph (unsigned verticeCount, unsigned edges_per_vertex);
 unsigned getNormalDistributedValues(unsigned range);
 
+//Generates a very small graph
+Graph* createSmallGraph();
+
 // Additional Functions for Graphs
 
 // Frees the allocated space of a graph

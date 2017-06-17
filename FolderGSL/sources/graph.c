@@ -630,6 +630,25 @@ void printGraph(Graph* graph)
 
 }
 
+Graph* createSmallGraph()
+{
+    Graph* graph = getEmptyGraph(3,4);
+    graph->vertices[0] = 0;
+    graph->vertices[1] = 2;
+    graph->vertices[2] = 2;
+    graph->vertices[3] = 4;
+    graph->edges[0] = 1;
+    graph->edges[1] = 2;
+    graph->edges[3] = 0;
+    graph->edges[4] = 1;
+
+    for(int i = 0; i<4;i++)
+    {
+       graph->weight[i] = 0.1;
+    }
+    return graph;
+}
+
 Graph* readGraphFromFile(const char* filename)
 {
     FILE *fp = fopen(filename,"r");

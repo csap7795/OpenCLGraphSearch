@@ -51,8 +51,8 @@ __kernel void dijkstra1(__global unsigned *vertexArray, __global unsigned *edgeA
                     //saves the predecessor node so that it is possible to backtrack the shortest paths
                     predecessor[nid] = id;
                 }
-
-                atomic_cmpxchg(semaphore+nid,1,0);
+                semaphore[nid] = 0;
+                //atomic_cmpxchg(semaphore+nid,1,0);
             }
 
             else

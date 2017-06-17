@@ -1,17 +1,3 @@
-// Each vertex calculates it's minimum path in the current VertexStage
-void combine(__global float *messageBuffer,__global unsigned *messageBuffer_path, unsigned numMessages, unsigned index, float *min, unsigned *predecessor)
-{
-    *min = FLT_MAX;
-    for(int i = 0; i<numMessages;i++)
-    {
-        unsigned new_index = index + (i*GROUP_NUM);
-        if(*min>messageBuffer[new_index]){
-            *min = messageBuffer[new_index];
-            *predecessor = messageBuffer_path[new_index];
-        }
-    }
-}
-
 // Initialize the cost, path & active arrays
 __kernel void initialize(__global float *cost,__global unsigned *path,__global bool *active, unsigned source)
 {
@@ -27,6 +13,20 @@ __kernel void initialize(__global float *cost,__global unsigned *path,__global b
         cost[id] = FLT_MAX;
         active[id] = false;
         path[id] = UINT_MAX;
+    }
+}
+
+// Each vertex calculates it's minimum path in the current VertexStage
+void combine(__global float *messageBuffer,__global unsigned *messageBuffer_path, unsigned numMessages, unsigned index, float *min, unsigned *predecessor)
+{
+    *min = FLT_MAX;
+    for(int i = 0; i<numMessages;i++)
+    {
+        unsigned new_index = index + (i*GROUP_NUM);
+        if(*min>messageBuffer[new_index]){
+            *min = messageBuffer[new_index];
+            *predecessor = messageBuffer_path[new_index];
+        }
     }
 }
 

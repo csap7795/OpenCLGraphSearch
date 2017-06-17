@@ -5,6 +5,7 @@
 #include <CL/cl.h>
 
 #define GROUP_NUM 32
+#define BUCKET_NUM 1000
 
 int preprocessing_parallel(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted,cl_uint* numEdgesSorted, cl_uint* oldToNew, cl_uint* newToOld, cl_uint* offset,cl_uint* messageBufferSize,cl_device_type type);
 

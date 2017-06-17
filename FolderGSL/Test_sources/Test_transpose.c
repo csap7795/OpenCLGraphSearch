@@ -8,6 +8,7 @@
 #include <benchmark_utils.h>
 
 #define CSVFILENAME_TOPO "transpose.csv"
+#define CSVFILENAME_TOPO_SERIAL "transpose_serial.csv"
 #define REPEATS 10
 
 unsigned long measure_time_transpose(Graph* graph, unsigned device_id);
@@ -22,7 +23,7 @@ void benchmark_transpose(Graph* graph)
     //Create CSV File for documenting results
     initCsv(csv_file_transpose,num_devices);
 
-    for(unsigned device = 0; device < num_devices;device++)
+    for(unsigned device = 1; device < num_devices;device++)
     {
         printf("Processing transpose for device : %u\n",device);
         long unsigned time = 0;
@@ -37,6 +38,63 @@ void benchmark_transpose(Graph* graph)
 
         printf("Done!\n");
     }
+}
+unsigned long transpose_ser(Graph* graph);
+void benchmark_transpose_serial(Graph* graph)
+{
+    // Create path to the kernel file
+    char csv_file_transpose[1024];
+    generate_path_name_csv(CSVFILENAME_TOPO_SERIAL,csv_file_transpose);
+
+    //Create CSV File for documenting results
+    initCsv(csv_file_transpose,1);
+
+    for(unsigned device = 0; device < 1;device++)
+    {
+        printf("Processing transpose for device : %u\n",device);
+        long unsigned time = 0;
+        for(int i = 0; i<REPEATS;i++)
+        {
+           time += transpose_ser(graph);
+        }
+
+        time = time/REPEATS;
+
+        writeToCsv(csv_file_transpose,graph->V,graph->E,device,time);
+
+        printf("Done!\n");
+    }
+}
+
+unsigned long transpose_ser(Graph* graph)
+{
+    Graph* out = getEmptyGraph(graph->V,graph->E);
+    unsigned long time = time_ms();
+    cl_uint* help = (cl_uint*)calloc(graph->V,sizeof(cl_uint));
+    out->vertices[0] = 0;
+    for(int i = 0; i<graph->E;i++)
+    {
+        out->vertices[graph->edges[i]+1]++;
+    }
+    for(int i = 1; i<graph->V;i++)
+    {
+        out->vertices[i] += out->vertices[i-1];
+    }
+    for(int i = 0; i<graph->V;i++)
+    {
+        for(int j = out->vertices[i]; j<out->vertices[i+1];j++)
+        {
+            cl_uint neighbour = graph->edges[j];
+            cl_uint index = out->vertices[neighbour]+help[neighbour];
+            out->edges[index] = i;
+            out->weight[index] = graph->weight[j];
+            help[neighbour]++;
+        }
+    }
+    free(help);
+    time = time_ms() - time;
+    freeGraph(out);
+    return time;
 }
 
 unsigned long measure_time_transpose(Graph* graph, unsigned device_id)
