@@ -7,8 +7,6 @@ __kernel void global_floyd_warshall(__global float* in, __global float* out, __g
 {
 	size_t x = get_global_id(0);
 	size_t y = get_global_id(1);
-    if(i == 1)
-	printf("Thread %d %d\n", x,y);
 
     out[x*width+y] = in[x*width+y];
 
@@ -29,10 +27,6 @@ __kernel void global_floyd_warshall_gpu(__global float* in, __global float* out,
 	size_t x = get_global_id(0);
 	size_t y = get_global_id(1);
     out[x+width*y] = in[x+width*y];
-
-
-    if(i == 1)
-	printf("Thread %d %d\n", x,y);
 
     if(x != i && y != i)
 	{

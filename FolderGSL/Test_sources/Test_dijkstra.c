@@ -1,5 +1,5 @@
 #include <Test_dijkstra.h>
-#include <bfs_parallel.h>
+#include <sssp.h>
 #include <cl_utils.h>
 #include <CL/cl.h>
 #include <graph.h>
