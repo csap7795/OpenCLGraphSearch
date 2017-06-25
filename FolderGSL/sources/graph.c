@@ -415,8 +415,10 @@ Graph* getRandomTreeGraph(int level, int edges, unsigned edgeperVertex)
         start_node = end_node;
     }
 
-    //allocate data vor edges
+    //allocate data for edges
     graph->edges = (cl_uint*) malloc(sizeof(cl_uint)*(graph->E));
+
+    graph->weight = (cl_float*) calloc((graph->E),sizeof(cl_float));
     // set first "edges" edges
     for(int i = 0; i<edges;i++)
         graph->edges[i] = i+1;
@@ -431,12 +433,12 @@ Graph* getRandomTreeGraph(int level, int edges, unsigned edgeperVertex)
         for(int j = start_node;j<=end_node;j++)
         {
             cl_uint length = graph->vertices[j+1] - graph->vertices[j];
-            assignRandomNumbersNotTheSame(&graph->edges[graph->vertices[j]],length,end_node+1,(unsigned)pow((float)edges,i+1));
+            //assignRandomNumbersNotTheSame(&graph->edges[graph->vertices[j]],length,end_node+1,(unsigned)pow((float)edges,i+1));
+            assignRandomNumbersNotTheSame(&graph->edges[graph->vertices[j]],length,end_node+1,graph->V-end_node);
         }
         start_node = end_node;
     }
 
-    graph->weight = NULL;
     return graph;
 
 }
