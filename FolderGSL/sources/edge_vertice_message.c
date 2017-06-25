@@ -49,22 +49,6 @@ int preprocessing_parallel(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sour
     return group_num;
 }
 
-
-void printarray(cl_uint* arr, unsigned length, const char* name)
-{
-    printf("%s\n",name);
-    for(int i = 0; i<length;i++)
-    {
-        printf("%d\t",i);
-    }
-    printf("\n");
-    for(int i = 0; i<length;i++)
-    {
-        printf("%u\t",arr[i]);
-    }
-    printf("\n\n");
-}
-
 void preprocessing_parallel_cpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted,cl_uint* numEdgesSorted, cl_uint* oldToNew, cl_uint* newToOld, cl_uint* offset,cl_uint* messageBufferSize,size_t device_num)
 {
     // Build the kernel
@@ -77,28 +61,14 @@ void preprocessing_parallel_cpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint*
     // calculate sourceVertices & numEdges
     calculateNumEdgesAndSourceVertices(graph,sourceVertices,numEdges);
 
-
-    printarray(numEdges,graph->V,"NumEdges");
-    printarray(sourceVertices,graph->E,"sourceVertices");
-
     // sort MessageBuffer
     messageBufferSort_parallel(graph,numEdges,numEdgesSorted,oldToNew,newToOld,offset);
-
-
-    printarray(oldToNew,graph->V,"OLDTONEW");
-    printarray(numEdgesSorted,graph->V,"NumEdgesSorted");
 
     //calculate the write positions for each edge in the messagebuffer
     CalculateWriteIndices(graph,oldToNew,messageWriteIndex,offset,numEdgesSorted, messageBufferSize);
 
-
-    printarray(offset,graph->V,"Offset");
-    printarray(messageWriteIndex,graph->E,"MessageWriteIndex");
-
     // save new aliases
     sortSourceVertices(graph,sourceVertices,oldToNew,sourceVerticesSorted);
-
-    printarray(sourceVerticesSorted,graph->E,"SourceVerticesSorted");
 
     //Free Resources
     free(numEdges);
@@ -128,31 +98,21 @@ void preprocessing_parallel_gpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint*
     calculateNumEdgesAndSourceVertices(graph,sourceVertices,numEdges);
     printf("Function: calculateNumEdges...\t%lu\n",time_ms()-start_time);
 
-    printarray(numEdges,graph->V,"NumEdges");
-    printarray(sourceVertices,graph->E,"sourceVertices");
-
     // sort MessageBuffer
     start_time = time_ms();
     messageBufferSort_parallel(graph,numEdges,numEdgesSorted,oldToNew,newToOld,offset);
     printf("Function: sortmessagebuffer...\t%lu\n",time_ms()-start_time);
-
-    printarray(oldToNew,graph->V,"OLDTONEW");
-    printarray(numEdgesSorted,graph->V,"NumEdgesSorted");
 
     //remap MessageBuffer
     start_time = time_ms();
     remapMassageBuffer_parallel(graph,messageWriteIndex,numEdgesSorted,offset,oldToNew,messageBufferSize);
     printf("Function: remapmassagebuffer_parallel...\t%lu\n",time_ms()-start_time);
 
-    printarray(offset,graph->V,"Offset");
-    printarray(messageWriteIndex,graph->E,"MessageWriteIndex");
-
     // save new aliases
     start_time = time_ms();
     sortSourceVertices(graph,sourceVertices,oldToNew,sourceVerticesSorted);
     printf("Function: sortsourcevertices...\t%lu\n",time_ms()-start_time);
 
-    printarray(sourceVerticesSorted,graph->E,"SourceVerticesSorted");
     //Free Resources
     free(numEdges);
     free(sourceVertices);
@@ -162,47 +122,6 @@ void preprocessing_parallel_gpu(Graph* graph,cl_uint* messageWriteIndex,cl_uint*
     clReleaseCommandQueue(command_queue);
     clReleaseContext(context);
 }
-
-/*void preprocessing_parallel_gpu_alternative(Graph* graph,cl_uint* messageWriteIndex,cl_uint* sourceVerticesSorted,cl_uint* numEdgesSorted, cl_uint* oldToNew,cl_uint* newToOld, cl_uint* offset,cl_uint* messageBufferSize,size_t device_num)
-{
-    // Build the kernel
-    unsigned long start_time = time_ms();
-    build_kernel(device_num,GROUP_NUM);
-    printf("Function: Building Kernel...\t%lu\n",time_ms()-start_time);
-
-    //Allocate necessary data
-    cl_uint* numEdges = (cl_uint*) calloc(graph->V,sizeof(cl_uint));
-    cl_uint* sourceVertices = (cl_uint*) malloc(graph->E * sizeof(cl_uint));
-
-    // calculate sourceVertices & numEdges
-    start_time = time_ms();
-    calculateNumEdgesAndSourceVertices(graph,sourceVertices,numEdges);
-    printf("Function: calculateNumEdges...\t%lu\n",time_ms()-start_time);
-
-    // sort MessageBuffer
-    start_time = time_ms();
-    messageBufferSort_parallel(graph,numEdges,numEdgesSorted,oldToNew,newToOld,offset);
-    printf("Function: sortmessagebuffer...\t%lu\n",time_ms()-start_time);
-
-    //remap MessageBuffer
-    start_time = time_ms();
-    remapMassageBuffer_parallel(graph,messageWriteIndex,numEdgesSorted,offset,oldToNew,messageBufferSize);
-    printf("Function: remapmassagebuffer_parallel...\t%lu\n",time_ms()-start_time);
-
-    // save new aliases
-    start_time = time_ms();
-    sortSourceVertices(graph,sourceVertices,oldToNew,sourceVerticesSorted);
-    printf("Function: sortsourcevertices...\t%lu\n",time_ms()-start_time);
-
-    //Free Resources
-    free(numEdges);
-    free(sourceVertices);
-
-    //Clean Up
-    clReleaseProgram(program);
-    clReleaseCommandQueue(command_queue);
-    clReleaseContext(context);
-}*/
 
 void calculateNumEdgesAndSourceVertices(Graph* graph, cl_uint* sourceVertices, cl_uint* numEdges)
 {

@@ -23,7 +23,7 @@ void benchmark_transpose(Graph* graph)
     //Create CSV File for documenting results
     initCsv(csv_file_transpose,num_devices);
 
-    for(unsigned device = 1; device < num_devices;device++)
+    for(unsigned device = 0; device < num_devices;device++)
     {
         printf("Processing transpose for device : %u\n",device);
         long unsigned time = 0;
